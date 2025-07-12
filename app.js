@@ -204,9 +204,15 @@ class SandPhotoApp {
     }
 
     populatePhotoTypes() {
-        // Store the arrays for later use
-        this.targetTypes = [...getPhotoTypesByCategory('id'), ...getPhotoTypesByCategory('document')];
-        this.containerTypes = getPhotoTypesByCategory('paper');
+        // Get the current language from config
+        const currentLanguage = this.config.language || 'en';
+        
+        // Get localized photo types
+        this.targetTypes = [
+            ...getPhotoTypesByCategoryLocalized('id', currentLanguage), 
+            ...getPhotoTypesByCategoryLocalized('document', currentLanguage)
+        ];
+        this.containerTypes = getPhotoTypesByCategoryLocalized('paper', currentLanguage);
         
         // Populate target types (photo sizes)
         if (this.targetTypeSelect) {

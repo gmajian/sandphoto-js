@@ -9,8 +9,113 @@ A JavaScript implementation of the SandPhoto ID photo generator application, ori
 - **Drag & Drop Upload**: Easy file upload with drag and drop support
 - **Real-time Preview**: See your photo layout before downloading
 - **Client-side Processing**: All processing happens in your browser for privacy
-- **Multiple Languages**: Support for English and Chinese interfaces
+- **Multi-Language Support**: Support for 10 languages with automatic detection
 - **Modular Architecture**: Reusable components for easy customization
+
+## Multi-Language System
+
+The application features a comprehensive multi-language system that supports 10 languages:
+
+### Supported Languages
+- 🇺🇸 **English** (en) - Default language
+- 🇨🇳 **Chinese** (zh) - 中文
+- 🇪🇸 **Spanish** (es) - Español
+- 🇫🇷 **French** (fr) - Français
+- 🇩🇪 **German** (de) - Deutsch
+- 🇯🇵 **Japanese** (ja) - 日本語
+- 🇰🇷 **Korean** (ko) - 한국어
+- 🇷🇺 **Russian** (ru) - Русский
+- 🇸🇦 **Arabic** (ar) - العربية (with RTL support)
+- 🇵🇹 **Portuguese** (pt) - Português
+
+### Language Features
+
+#### Automatic Detection
+```javascript
+// Automatically detect user's browser language
+const userLanguage = UIGenerator.detectUserLanguage();
+const config = UIGenerator.getLanguageConfig(userLanguage);
+```
+
+#### Manual Language Selection
+```javascript
+// Choose specific language
+const spanishConfig = UIGenerator.getLanguageConfig('es');
+const uiGenerator = new UIGenerator(spanishConfig);
+```
+
+#### Dynamic Language Switching
+```javascript
+// Switch language at runtime
+function switchLanguage(languageCode) {
+    const config = UIGenerator.getLanguageConfig(languageCode);
+    const uiGenerator = new UIGenerator(config);
+    
+    // Regenerate form with new language
+    const form = uiGenerator.generateCompleteForm();
+    container.innerHTML = '';
+    container.appendChild(form);
+    
+    // Reinitialize app
+    new SandPhotoApp(config);
+}
+```
+
+### Adding New Languages
+
+To add support for a new language (e.g., Italian):
+
+1. **Add Language Configuration** in `ui-generator.js`:
+```javascript
+static getItalianConfig() {
+    return {
+        language: 'it',
+        texts: {
+            photoSizeTitle: 'Passo 1',
+            selectPhotoSize: 'Seleziona Dimensione Foto',
+            customSize: 'Dimensione Personalizzata',
+            // ... all other text keys
+        }
+    };
+}
+```
+
+2. **Add to Language Registry**:
+```javascript
+static getLanguageConfig(languageCode) {
+    const configs = {
+        'en': UIGenerator.getEnglishConfig(),
+        'zh': UIGenerator.getChineseConfig(),
+        'it': UIGenerator.getItalianConfig(), // Add new language
+        // ... other languages
+    };
+    return configs[languageCode] || configs['en'];
+}
+```
+
+3. **Add to Available Languages**:
+```javascript
+static getAvailableLanguages() {
+    return [
+        { code: 'en', name: 'English', nativeName: 'English' },
+        { code: 'it', name: 'Italian', nativeName: 'Italiano' }, // Add new language
+        // ... other languages
+    ];
+}
+```
+
+### Photo Type Localization
+
+Photo types support multiple languages through the `name_en` and `name_zh` fields:
+
+```javascript
+// Get localized photo type names
+const photoTypes = getPhotoTypesByCategoryLocalized('id', 'zh');
+// Returns photo types with Chinese names
+
+const photoTypes = getPhotoTypesByCategoryLocalized('document', 'en');
+// Returns photo types with English names
+```
 
 ## Modular UI System
 
@@ -55,79 +160,39 @@ const chineseConfig = {
 new SandPhotoApp(chineseConfig);
 ```
 
-#### Dynamic Form Generation
+#### Auto-Detection with Fallback
 ```javascript
-// Generate complete form dynamically
-const uiGenerator = new UIGenerator(UIGenerator.getEnglishConfig());
-const form = uiGenerator.generateCompleteForm('my-form');
-document.body.appendChild(form);
+// Auto-detect language with English fallback
+const userLanguage = UIGenerator.detectUserLanguage();
+const config = UIGenerator.getLanguageConfig(userLanguage);
+
+new SandPhotoApp(config);
 ```
 
-### Available Pages
+## Demo Pages
 
 - **`index.html`**: Main English interface
-- **`blog-integration.html`**: Chinese blog-style interface
-- **`dynamic-demo.html`**: Demo showing dynamic UI generation
-- **`tests.html`**: Simple test framework
-- **`test-runner.html`**: Comprehensive test suite
-
-## Custom Photo Size Feature
-
-Users can now specify custom dimensions for their photos:
-
-1. Select "Custom Size" from the photo size dropdown
-2. Enter width and height in centimeters
-3. The system validates input (0.1-50cm range)
-4. Preview updates automatically with custom dimensions
-
-### Validation Rules
-- Width and height must be greater than 0
-- Maximum dimension is 50cm
-- Values are rounded to 0.1cm precision
-
-## Photo Count Control
-
-Control how many photos to place on a sheet:
-
-1. Select from preset options (1, 2, 4, 6, 8, 12, 16, 20, 24)
-2. Choose "Auto" for maximum possible photos
-3. Use "Custom" to specify any number (1-100)
-
-### Layout Algorithm
-The system uses an intelligent layout algorithm that:
-- Calculates optimal rows and columns
-- Prefers square-like arrangements
-- Centers photos properly
-- Handles edge cases gracefully
+- **`blog-integration.html`**: Chinese blog integration
+- **`dynamic-demo.html`**: Language switching demo
+- **`multi-language-demo.html`**: Comprehensive multi-language showcase
 
 ## File Structure
 
 ```
 sandphoto-js/
-├── index.html              # Main English interface
-├── blog-integration.html   # Chinese blog interface
-├── dynamic-demo.html       # Dynamic UI demo
-├── app.js                  # Main application logic
-├── ui-generator.js         # UI generation utilities
-├── sandphoto.js           # Core photo processing
-├── phototypes.js          # Photo type definitions
-├── styles.css             # Styling
-├── test-suite.js          # Test definitions
-├── tests.html             # Simple test framework
-├── test-runner.html       # Comprehensive test suite
-└── README.md              # This file
+├── app.js                 # Main application logic
+├── sandphoto.js          # Core photo processing
+├── ui-generator.js       # Dynamic UI generation
+├── phototypes.js         # Photo type definitions
+├── styles.css            # Styling
+├── index.html            # Main English page
+├── blog-integration.html # Chinese blog page
+├── dynamic-demo.html     # Language switching demo
+├── multi-language-demo.html # Multi-language showcase
+└── README.md            # This file
 ```
 
-## Testing
-
-The application includes comprehensive testing:
-
-- **`tests.html`**: Quick validation with basic assertions
-- **`test-runner.html`**: Full Jest-style test suite with detailed reporting
-
-Run tests by opening either test file in your browser.
-
-## Browser Compatibility
+## Browser Support
 
 - Modern browsers with ES6+ support
 - Canvas API for image processing
@@ -136,12 +201,17 @@ Run tests by opening either test file in your browser.
 
 ## Privacy
 
-All processing happens client-side. No images are uploaded to any server, ensuring complete privacy.
-
-## License
-
-This project is open source and available under the same license as the original PHP version.
+All processing happens client-side - your photos never leave your device!
 
 ## Contributing
 
-Feel free to submit issues, feature requests, or pull requests to improve the application. 
+To add support for a new language:
+
+1. Add the language configuration to `UIGenerator`
+2. Add photo type names in the new language to `phototypes.js`
+3. Test the language with the demo pages
+4. Update documentation
+
+## License
+
+This project is open source and available under the MIT License. 
