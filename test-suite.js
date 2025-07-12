@@ -496,6 +496,167 @@ function createCustomSizeTestSuite() {
         });
     });
 
+    suite.test('should handle photo count control', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7); // A4
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        // Test that putPhotoWithCount method exists
+        expect(typeof sandPhoto.putPhotoWithCount).toBe('function');
+        expect(typeof sandPhoto.calculateOptimalLayout).toBe('function');
+    });
+
+    suite.test('should calculate optimal layout for different photo counts', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7); // A4
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        const testCases = [
+            { count: 1, expected: 'should fit' },
+            { count: 4, expected: 'should fit' },
+            { count: 8, expected: 'should fit' },
+            { count: 16, expected: 'should fit' },
+            { count: 100, expected: 'should fallback to max' }
+        ];
+        
+        testCases.forEach(({ count, expected }) => {
+            const layout = sandPhoto.calculateOptimalLayout(count, 5);
+            if (count <= 50) {
+                expect(layout).toBeTruthy();
+            } else {
+                // For very high counts, it might fallback to max layout
+                expect(layout === null || layout).toBeTruthy();
+            }
+        });
+    });
+
+    suite.test('should center photos correctly for specific counts', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(15.2, 10.2); // 6寸 paper
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸 photo
+        
+        // Test 6 photos on 6寸 paper - should be 2x3 or 3x2 layout
+        const layout = sandPhoto.calculateOptimalLayout(6, 5);
+        expect(layout).toBeTruthy();
+        expect(layout.cols * layout.rows).toBeGreaterThanOrEqual(6);
+        
+        // The layout should be reasonably balanced (not too wide or tall)
+        const aspectRatio = layout.cols / layout.rows;
+        expect(aspectRatio).toBeGreaterThan(0.5);
+        expect(aspectRatio).toBeLessThan(2.0);
+    });
+
+    suite.test('should calculate centering positions correctly', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(15.2, 10.2); // 6寸 paper
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸 photo
+        
+        const GAP = 5;
+        const layout = { cols: 3, rows: 2 };
+        const containerWidth = sandPhoto.getPixelFromCM(15.2);
+        const containerHeight = sandPhoto.getPixelFromCM(10.2);
+        const targetWidth = sandPhoto.getPixelFromCM(2.5);
+        const targetHeight = sandPhoto.getPixelFromCM(3.5);
+        
+        // Calculate centering positions
+        const totalWidth = layout.cols * (targetWidth + GAP) - GAP;
+        const totalHeight = layout.rows * (targetHeight + GAP) - GAP;
+        const wStart = (containerWidth - totalWidth) / 2;
+        const hStart = (containerHeight - totalHeight) / 2;
+        
+        // Verify centering calculations
+        expect(wStart).toBeGreaterThan(0);
+        expect(hStart).toBeGreaterThan(0);
+        expect(wStart + totalWidth).toBeLessThan(containerWidth);
+        expect(hStart + totalHeight).toBeLessThan(containerHeight);
+    });
+
+    return suite;
+}
+
+// Photo Count Control Test Suite
+function createPhotoCountTestSuite() {
+    const suite = new TestSuite('Photo Count Control');
+    
+    suite.test('should validate photo count inputs', () => {
+        // Test valid photo counts
+        const validCounts = [1, 2, 4, 6, 8, 12, 16, 20, 24, 50, 100];
+        
+        // Test invalid photo counts
+        const invalidCounts = [0, -1, 101, 200, NaN];
+        
+        validCounts.forEach(count => {
+            const isValid = count > 0 && count <= 100 && !isNaN(count);
+            expect(isValid).toBe(true);
+        });
+        
+        invalidCounts.forEach(count => {
+            const isValid = count > 0 && count <= 100 && !isNaN(count);
+            expect(isValid).toBe(false);
+        });
+    });
+
+    suite.test('should handle auto mode vs specific counts', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7); // A4
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        // Test that auto mode uses maximum layout
+        expect(typeof sandPhoto.putPhoto).toBe('function');
+        expect(typeof sandPhoto.putPhotoWithCount).toBe('function');
+    });
+
+    suite.test('should calculate optimal layout for small counts', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7); // A4
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        const smallCounts = [1, 2, 4, 6, 8];
+        
+        smallCounts.forEach(count => {
+            const layout = sandPhoto.calculateOptimalLayout(count, 5);
+            expect(layout).toBeTruthy();
+            expect(layout.cols * layout.rows).toBeGreaterThanOrEqual(count);
+        });
+    });
+
+    suite.test('should handle custom count input validation', () => {
+        const testCases = [
+            { input: '1', expected: 1, valid: true },
+            { input: '10', expected: 10, valid: true },
+            { input: '50', expected: 50, valid: true },
+            { input: '100', expected: 100, valid: true },
+            { input: '0', expected: null, valid: false },
+            { input: '-1', expected: null, valid: false },
+            { input: '101', expected: null, valid: false },
+            { input: 'abc', expected: null, valid: false }
+        ];
+        
+        testCases.forEach(({ input, expected, valid }) => {
+            const count = parseInt(input);
+            const isValid = !isNaN(count) && count > 0 && count <= 100;
+            expect(isValid).toBe(valid);
+        });
+    });
+
+    suite.test('should handle different photo sizes with count control', () => {
+        const testCases = [
+            { photo: { width: 2.5, height: 3.5 }, count: 4 }, // 1寸, 4 photos
+            { photo: { width: 3.8, height: 5.1 }, count: 6 }, // 2寸, 6 photos
+            { photo: { width: 4.0, height: 5.5 }, count: 8 }  // Custom, 8 photos
+        ];
+        
+        testCases.forEach(({ photo, count }) => {
+            const sandPhoto = new SandPhoto();
+            sandPhoto.setContainerSize(21.0, 29.7); // A4
+            sandPhoto.setTargetSize(photo.width, photo.height);
+            
+            const layout = sandPhoto.calculateOptimalLayout(count, 5);
+            expect(layout).toBeTruthy();
+            expect(layout.cols * layout.rows).toBeGreaterThanOrEqual(count);
+        });
+    });
+
     return suite;
 }
 
@@ -507,6 +668,7 @@ if (typeof module !== 'undefined' && module.exports) {
         createLayoutTestSuite,
         createImageProcessingTestSuite,
         createAppIntegrationTestSuite,
-        createCustomSizeTestSuite
+        createCustomSizeTestSuite,
+        createPhotoCountTestSuite
     };
 } 

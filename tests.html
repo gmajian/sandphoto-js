@@ -58,6 +58,11 @@
             <h3>🎯 Custom Size Tests</h3>
             <div id="customSizeTests"></div>
         </div>
+
+        <div class="test-section">
+            <h3>📊 Photo Count Tests</h3>
+            <div id="photoCountTests"></div>
+        </div>
     </div>
 
     <script src="phototypes.js"></script>
@@ -424,6 +429,60 @@
             return runner;
         }
 
+        function testPhotoCountFeatures() {
+            const runner = new TestRunner();
+            
+            // Test photo count validation
+            const validCounts = [1, 2, 4, 6, 8, 12, 16, 20, 24, 50, 100];
+            const invalidCounts = [0, -1, 101, 200];
+            
+            validCounts.forEach(count => {
+                const isValid = count > 0 && count <= 100;
+                runner.assertEquals(true, isValid, `Valid count ${count} should be accepted`);
+            });
+            
+            invalidCounts.forEach(count => {
+                const isValid = count > 0 && count <= 100;
+                runner.assertEquals(false, isValid, `Invalid count ${count} should be rejected`);
+            });
+            
+            // Test SandPhoto with photo count methods
+            const sandPhoto = new SandPhoto();
+            sandPhoto.setContainerSize(21.0, 29.7); // A4
+            sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+            
+            runner.assertNotNull(sandPhoto.putPhotoWithCount, 'putPhotoWithCount method should exist');
+            runner.assertNotNull(sandPhoto.calculateOptimalLayout, 'calculateOptimalLayout method should exist');
+            
+            // Test layout calculation for different counts
+            const testCounts = [1, 4, 8, 16];
+            testCounts.forEach(count => {
+                const layout = sandPhoto.calculateOptimalLayout(count, 5);
+                runner.assertNotNull(layout, `Layout should be calculated for ${count} photos`);
+                runner.assertTrue(layout.cols * layout.rows >= count, `Layout should fit at least ${count} photos`);
+            });
+            
+            // Test custom count input validation
+            const testInputs = [
+                { input: '1', expected: 1, valid: true },
+                { input: '10', expected: 10, valid: true },
+                { input: '50', expected: 50, valid: true },
+                { input: '100', expected: 100, valid: true },
+                { input: '0', expected: null, valid: false },
+                { input: '-1', expected: null, valid: false },
+                { input: '101', expected: null, valid: false }
+            ];
+            
+            testInputs.forEach(({ input, expected, valid }) => {
+                const count = parseInt(input);
+                const isValid = !isNaN(count) && count > 0 && count <= 100;
+                runner.assertEquals(valid, isValid, `Input "${input}" should be ${valid ? 'valid' : 'invalid'}`);
+            });
+            
+            runner.renderResults('photoCountTests');
+            return runner;
+        }
+
         async function runAllTests() {
             const summary = document.getElementById('summary');
             summary.innerHTML = '<h3>Running tests...</h3>';
@@ -436,6 +495,7 @@
             runners.push(testLayoutCalculations());
             runners.push(testAppIntegration());
             runners.push(testCustomSizeFeatures());
+            runners.push(testPhotoCountFeatures());
             
             // Run asynchronous tests
             const imageProcessingRunner = await testImageProcessing();

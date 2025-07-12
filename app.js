@@ -23,6 +23,11 @@ class SandPhotoApp {
         this.customSizeGroup2 = document.getElementById('customSizeGroup2');
         this.customWidthInput = document.getElementById('customWidth');
         this.customHeightInput = document.getElementById('customHeight');
+        
+        // Photo count elements
+        this.photoCountSelect = document.getElementById('photoCountSelect');
+        this.customCountGroup = document.getElementById('customCountGroup');
+        this.customPhotoCountInput = document.getElementById('customPhotoCount');
     }
 
     setupEventListeners() {
@@ -58,6 +63,10 @@ class SandPhotoApp {
         this.customWidthInput.addEventListener('input', () => this.updatePreview());
         this.customHeightInput.addEventListener('input', () => this.updatePreview());
 
+        // Photo count events
+        this.photoCountSelect.addEventListener('change', () => this.handlePhotoCountChange());
+        this.customPhotoCountInput.addEventListener('input', () => this.updatePreview());
+
         // Download button
         this.downloadBtn.addEventListener('click', () => this.downloadImage());
     }
@@ -91,6 +100,34 @@ class SandPhotoApp {
             setTimeout(() => {
                 this.customSizeGroup.style.display = 'none';
                 this.customSizeGroup2.style.display = 'none';
+            }, 300);
+        }
+        
+        this.updatePreview();
+    }
+
+    handlePhotoCountChange() {
+        const selectedValue = this.photoCountSelect.value;
+        
+        if (selectedValue === 'custom') {
+            // Show custom count input with animation
+            this.customCountGroup.style.display = 'block';
+            
+            // Add animation class after a brief delay
+            setTimeout(() => {
+                this.customCountGroup.classList.add('show');
+            }, 10);
+            
+            // Set default value for custom count
+            if (!this.customPhotoCountInput.value) {
+                this.customPhotoCountInput.value = '10';
+            }
+        } else {
+            // Hide custom count input
+            this.customCountGroup.classList.remove('show');
+            
+            setTimeout(() => {
+                this.customCountGroup.style.display = 'none';
             }, 300);
         }
         
@@ -195,6 +232,34 @@ class SandPhotoApp {
         }
     }
 
+    getSelectedPhotoCount() {
+        const selectedValue = this.photoCountSelect.value;
+        
+        if (selectedValue === 'custom') {
+            const count = parseInt(this.customPhotoCountInput.value);
+            
+            if (isNaN(count) || count <= 0) {
+                // Show error message for invalid custom count
+                if (this.currentImage) {
+                    alert('Please enter a valid photo count (must be greater than 0).');
+                }
+                return null;
+            }
+            
+            // Validate reasonable limits
+            if (count > 100) {
+                alert('Custom photo count cannot exceed 100. Please enter a smaller value.');
+                return null;
+            }
+            
+            return count;
+        } else if (selectedValue === 'auto') {
+            return 'auto';
+        } else {
+            return parseInt(selectedValue);
+        }
+    }
+
     updatePreview() {
         if (!this.currentImage) {
             this.previewSection.style.display = 'none';
@@ -204,8 +269,9 @@ class SandPhotoApp {
         const targetType = this.getSelectedPhotoSize();
         const containerIndex = this.containerTypeSelect.value;
         const bgColor = this.bgColorSelect.value;
+        const photoCountSetting = this.getSelectedPhotoCount();
 
-        if (!targetType || !containerIndex) {
+        if (!targetType || !containerIndex || photoCountSetting === null) {
             this.previewSection.style.display = 'none';
             return;
         }
@@ -222,14 +288,25 @@ class SandPhotoApp {
             // Debug information
             console.log('Selected target type:', targetType);
             console.log('Selected container type:', containerType);
+            console.log('Selected photo count:', photoCountSetting);
+
+            // Debug layout calculation
+            if (photoCountSetting !== 'auto') {
+                this.sandPhoto.debugLayout(photoCountSetting);
+            }
 
             // Create SandPhoto instance
             this.sandPhoto = new SandPhoto();
             this.sandPhoto.setContainerSize(containerType.width, containerType.height);
             this.sandPhoto.setTargetSize(targetType.width, targetType.height);
 
-            // Generate the photo sheet
-            const photoCount = this.sandPhoto.putPhoto(this.currentImage, bgColor);
+            // Generate the photo sheet with specified count
+            let photoCount;
+            if (photoCountSetting === 'auto') {
+                photoCount = this.sandPhoto.putPhoto(this.currentImage, bgColor);
+            } else {
+                photoCount = this.sandPhoto.putPhotoWithCount(this.currentImage, bgColor, photoCountSetting);
+            }
 
             // Update preview
             const previewCanvas = this.sandPhoto.getPreviewCanvas(800, 600);
@@ -242,7 +319,7 @@ class SandPhotoApp {
             // Draw preview
             previewCtx.drawImage(previewCanvas, 0, 0);
 
-            // Update photo count
+            // Update photo count display
             this.photoCount.textContent = photoCount;
 
             // Show preview section
@@ -263,16 +340,23 @@ class SandPhotoApp {
         const targetType = this.getSelectedPhotoSize();
         const containerIndex = this.containerTypeSelect.value;
         const bgColor = this.bgColorSelect.value;
+        const photoCountSetting = this.getSelectedPhotoCount();
 
         const containerType = this.containerTypes[parseInt(containerIndex)];
 
-        if (!targetType || !containerType) {
+        if (!targetType || !containerType || photoCountSetting === null) {
             alert('Please select valid photo and paper sizes.');
             return;
         }
 
-        // Generate filename
-        const photoCount = this.sandPhoto.putPhoto(this.currentImage, bgColor);
+        // Generate filename with specified count
+        let photoCount;
+        if (photoCountSetting === 'auto') {
+            photoCount = this.sandPhoto.putPhoto(this.currentImage, bgColor);
+        } else {
+            photoCount = this.sandPhoto.putPhotoWithCount(this.currentImage, bgColor, photoCountSetting);
+        }
+        
         const filename = `${photoCount}张${targetType.name}[以${containerType.name}冲洗].jpg`;
 
         try {

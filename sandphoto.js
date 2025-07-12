@@ -115,8 +115,10 @@ class SandPhoto {
         this.createEmptyImage(bgColorId);
 
         // Calculate starting position to center the photos
-        const wStart = (this.containerWidth - wn * (this.targetWidth + GAP) + GAP) / 2;
-        const hStart = (this.containerHeight - hn * (this.targetHeight + GAP) + GAP) / 2;
+        const totalWidth = wn * (this.targetWidth + GAP) - GAP;
+        const totalHeight = hn * (this.targetHeight + GAP) - GAP;
+        const wStart = (this.containerWidth - totalWidth) / 2;
+        const hStart = (this.containerHeight - totalHeight) / 2;
 
         // Place photos on canvas
         for (let i = 0; i < wn; i++) {
@@ -132,6 +134,125 @@ class SandPhoto {
         }
 
         return wn * hn;
+    }
+
+    // Process and place photos on the canvas with specified count
+    putPhotoWithCount(imageElement, bgColorId = "blue", targetCount) {
+        const img = imageElement;
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+
+        // Calculate crop dimensions to fit target size
+        const ratio1 = w / this.targetWidth;
+        const ratio2 = h / this.targetHeight;
+        let cutW, cutH, cutX, cutY;
+
+        if (ratio1 > ratio2) {
+            cutW = this.targetWidth * ratio2;
+            cutH = h;
+            cutX = (w - cutW) / 2;
+            cutY = 0;
+        } else {
+            cutH = this.targetHeight * ratio1;
+            cutW = w;
+            cutY = (h - cutH) / 2;
+            cutX = 0;
+        }
+
+        const GAP = 5;
+
+        // Calculate optimal layout for the target count
+        let bestLayout = this.calculateOptimalLayout(targetCount, GAP);
+        
+        if (!bestLayout) {
+            // Fallback to maximum layout if target count is too high
+            return this.putPhoto(imageElement, bgColorId);
+        }
+
+        // Create canvas with proper dimensions
+        this.containerWidth = bestLayout.containerWidth;
+        this.containerHeight = bestLayout.containerHeight;
+        this.createEmptyImage(bgColorId);
+
+        // Calculate starting position to center the photos
+        const totalWidth = bestLayout.cols * (this.targetWidth + GAP) - GAP;
+        const totalHeight = bestLayout.rows * (this.targetHeight + GAP) - GAP;
+        const wStart = (this.containerWidth - totalWidth) / 2;
+        const hStart = (this.containerHeight - totalHeight) / 2;
+
+        // Place photos on canvas up to the target count
+        let placedCount = 0;
+        for (let i = 0; i < bestLayout.cols && placedCount < targetCount; i++) {
+            const posX = wStart + (this.targetWidth + GAP) * i;
+            for (let j = 0; j < bestLayout.rows && placedCount < targetCount; j++) {
+                const posY = hStart + (this.targetHeight + GAP) * j;
+                
+                this.ctx.drawImage(img, 
+                    cutX, cutY, cutW, cutH,  // Source rectangle
+                    posX, posY, this.targetWidth, this.targetHeight  // Destination rectangle
+                );
+                placedCount++;
+            }
+        }
+
+        return placedCount;
+    }
+
+    // Calculate optimal layout for target photo count
+    calculateOptimalLayout(targetCount, gap) {
+        const maxCols = Math.floor(this.containerWidth / (this.targetWidth + gap));
+        const maxRows = Math.floor(this.containerHeight / (this.targetHeight + gap));
+        const maxPhotos = maxCols * maxRows;
+
+        // Try rotated layout
+        const maxColsRotated = Math.floor(this.containerHeight / (this.targetWidth + gap));
+        const maxRowsRotated = Math.floor(this.containerWidth / (this.targetHeight + gap));
+        const maxPhotosRotated = maxColsRotated * maxRowsRotated;
+
+        let bestLayout = null;
+        let bestScore = Infinity;
+
+        // Check normal orientation
+        if (maxPhotos >= targetCount) {
+            // Try different arrangements to find the most square-like layout
+            for (let cols = 1; cols <= Math.min(maxCols, targetCount); cols++) {
+                const rows = Math.ceil(targetCount / cols);
+                if (rows <= maxRows) {
+                    const score = Math.abs(cols - rows); // Prefer square-like arrangements
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestLayout = {
+                            cols: cols,
+                            rows: rows,
+                            containerWidth: this.containerWidth,
+                            containerHeight: this.containerHeight
+                        };
+                    }
+                }
+            }
+        }
+
+        // Check rotated orientation
+        if (maxPhotosRotated >= targetCount) {
+            // Try different arrangements to find the most square-like layout
+            for (let cols = 1; cols <= Math.min(maxColsRotated, targetCount); cols++) {
+                const rows = Math.ceil(targetCount / cols);
+                if (rows <= maxRowsRotated) {
+                    const score = Math.abs(cols - rows); // Prefer square-like arrangements
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestLayout = {
+                            cols: cols,
+                            rows: rows,
+                            containerWidth: this.containerHeight,
+                            containerHeight: this.containerWidth
+                        };
+                    }
+                }
+            }
+        }
+
+        return bestLayout;
     }
 
     // Get preview canvas (scaled down for display)
@@ -189,6 +310,23 @@ class SandPhoto {
             this.canvas = null;
             this.ctx = null;
         }
+    }
+
+    // Debug method to log layout information
+    debugLayout(targetCount, gap = 5) {
+        const layout = this.calculateOptimalLayout(targetCount, gap);
+        if (layout) {
+            console.log(`Layout for ${targetCount} photos:`, {
+                cols: layout.cols,
+                rows: layout.rows,
+                totalSlots: layout.cols * layout.rows,
+                containerWidth: layout.containerWidth,
+                containerHeight: layout.containerHeight
+            });
+        } else {
+            console.log(`No layout found for ${targetCount} photos`);
+        }
+        return layout;
     }
 }
 

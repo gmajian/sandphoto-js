@@ -67,6 +67,11 @@
             <h3>🎯 Custom Size Features Test Suite <span class="status">Pending</span></h3>
             <div class="test-results"></div>
         </div>
+
+        <div class="test-suite" id="photoCountSuite">
+            <h3>📊 Photo Count Control Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
     </div>
 
     <script src="phototypes.js"></script>
@@ -178,7 +183,8 @@
                     { name: 'createLayoutTestSuite', func: createLayoutTestSuite },
                     { name: 'createImageProcessingTestSuite', func: createImageProcessingTestSuite },
                     { name: 'createAppIntegrationTestSuite', func: createAppIntegrationTestSuite },
-                    { name: 'createCustomSizeTestSuite', func: createCustomSizeTestSuite }
+                    { name: 'createCustomSizeTestSuite', func: createCustomSizeTestSuite },
+                    { name: 'createPhotoCountTestSuite', func: createPhotoCountTestSuite }
                 ];
                 
                 // Count total tests
@@ -194,6 +200,7 @@
                 await runTestSuite('imageProcessingSuite', createImageProcessingTestSuite);
                 await runTestSuite('appIntegrationSuite', createAppIntegrationTestSuite);
                 await runTestSuite('customSizeSuite', createCustomSizeTestSuite);
+                await runTestSuite('photoCountSuite', createPhotoCountTestSuite);
                 
                 // Final summary
                 const successRate = (passedTests / totalTests * 100).toFixed(1);
