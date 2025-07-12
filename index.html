@@ -14,88 +14,8 @@
         </header>
 
         <main>
-            <div class="upload-section">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-content">
-                        <div class="upload-icon">📁</div>
-                        <h3>Choose Your Photo</h3>
-                        <p>Drag & drop your photo here or click to browse</p>
-                        <input type="file" id="photoInput" accept="image/*" hidden>
-                        <button class="upload-btn" onclick="document.getElementById('photoInput').click()">
-                            Select Photo
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <div class="settings-grid">
-                    <div class="setting-group">
-                        <label for="targetType">Photo Size:</label>
-                        <select id="targetType" class="form-control">
-                            <option value="">Loading...</option>
-                        </select>
-                    </div>
-
-                    <div class="setting-group" id="customSizeGroup" style="display: none;">
-                        <label for="customWidth">Custom Width (cm):</label>
-                        <input type="number" id="customWidth" class="form-control" min="0.1" max="50" step="0.1" placeholder="e.g., 3.5">
-                    </div>
-
-                    <div class="setting-group" id="customSizeGroup2" style="display: none;">
-                        <label for="customHeight">Custom Height (cm):</label>
-                        <input type="number" id="customHeight" class="form-control" min="0.1" max="50" step="0.1" placeholder="e.g., 4.8">
-                    </div>
-
-                    <div class="setting-group">
-                        <label for="containerType">Paper Size:</label>
-                        <select id="containerType" class="form-control">
-                            <option value="">Loading...</option>
-                        </select>
-                    </div>
-
-                    <div class="setting-group">
-                        <label for="bgColor">Background Color:</label>
-                        <select id="bgColor" class="form-control">
-                            <option value="white">White</option>
-                            <option value="blue" selected>Blue</option>
-                            <option value="gray">Gray</option>
-                        </select>
-                    </div>
-
-                    <div class="setting-group">
-                        <label for="photoCountSelect">Photos per Sheet:</label>
-                        <select id="photoCountSelect" class="form-control">
-                            <option value="auto" selected>Auto (Maximum)</option>
-                            <option value="1">1 Photo</option>
-                            <option value="2">2 Photos</option>
-                            <option value="4">4 Photos</option>
-                            <option value="6">6 Photos</option>
-                            <option value="8">8 Photos</option>
-                            <option value="12">12 Photos</option>
-                            <option value="16">16 Photos</option>
-                            <option value="20">20 Photos</option>
-                            <option value="24">24 Photos</option>
-                            <option value="custom">Custom Count</option>
-                        </select>
-                    </div>
-
-                    <div class="setting-group" id="customCountGroup" style="display: none;">
-                        <label for="customPhotoCount">Custom Photo Count:</label>
-                        <input type="number" id="customPhotoCount" class="form-control" min="1" max="100" step="1" placeholder="e.g., 10">
-                    </div>
-                </div>
-            </div>
-
-            <div class="preview-section" id="previewSection" style="display: none;">
-                <h3>Preview</h3>
-                <div class="preview-container">
-                    <canvas id="previewCanvas" width="800" height="600"></canvas>
-                </div>
-                <div class="preview-info">
-                    <p id="photoCount">Photos that will fit: <span id="count">0</span></p>
-                    <button id="downloadBtn" class="download-btn">Download Photo Sheet</button>
-                </div>
+            <div id="sandphoto-form-container">
+                <!-- Form will be generated here by JavaScript -->
             </div>
         </main>
 
@@ -106,6 +26,51 @@
 
     <script src="phototypes.js"></script>
     <script src="sandphoto.js"></script>
+    <script src="ui-generator.js"></script>
     <script src="app.js"></script>
+    <script>
+        // Initialize the main page with English configuration
+        document.addEventListener('DOMContentLoaded', () => {
+            // Create UI generator with English config and canvas preview
+            const uiConfig = {
+                ...UIGenerator.getEnglishConfig(),
+                previewType: 'canvas'
+            };
+            const uiGenerator = new UIGenerator(uiConfig);
+            
+            // Generate the complete form
+            const form = uiGenerator.generateCompleteForm('sandphoto-form');
+            
+            // Add the form to the container
+            const container = document.getElementById('sandphoto-form-container');
+            container.appendChild(form);
+            
+            // Create app with main page configuration
+            const mainConfig = {
+                language: 'en',
+                elementIds: {
+                    uploadArea: 'uploadArea',
+                    photoInput: 'filename',
+                    targetTypeSelect: 'targetType',
+                    containerTypeSelect: 'containerType',
+                    bgColorSelect: 'bgColor', // Use dropdown
+                    previewSection: 'previewContainer',
+                    previewCanvas: 'previewCanvas',
+                    photoCount: 'count',
+                    downloadBtn: 'downloadBtn',
+                    customSizeGroup: 'customSizeSection',
+                    customSizeGroup2: null,
+                    customWidthInput: 'customWidth',
+                    customHeightInput: 'customHeight',
+                    photoCountSelect: 'photoCountSelect',
+                    customCountGroup: 'photoCountSection',
+                    customPhotoCountInput: 'customPhotoCount'
+                },
+                texts: UIGenerator.getEnglishConfig().texts
+            };
+            
+            new SandPhotoApp(mainConfig);
+        });
+    </script>
 </body>
 </html> 
