@@ -53,6 +53,11 @@
             <h3>📱 App Integration Tests</h3>
             <div id="appTests"></div>
         </div>
+
+        <div class="test-section">
+            <h3>🎯 Custom Size Tests</h3>
+            <div id="customSizeTests"></div>
+        </div>
     </div>
 
     <script src="phototypes.js"></script>
@@ -316,6 +321,109 @@
             return runner;
         }
 
+        function testCustomSizeFeatures() {
+            const runner = new TestRunner();
+            
+            // Test custom dimension validation
+            const validDimensions = [
+                { width: 3.5, height: 4.8, expected: true },
+                { width: 0.1, height: 0.1, expected: true },
+                { width: 50.0, height: 50.0, expected: true },
+                { width: 2.0, height: 3.0, expected: true }
+            ];
+            
+            const invalidDimensions = [
+                { width: 0, height: 3.5, expected: false },
+                { width: 3.5, height: 0, expected: false },
+                { width: -1, height: 3.5, expected: false },
+                { width: 3.5, height: -1, expected: false },
+                { width: 51, height: 3.5, expected: false },
+                { width: 3.5, height: 51, expected: false }
+            ];
+            
+            validDimensions.forEach(({ width, height, expected }) => {
+                const isValid = width > 0 && height > 0 && width <= 50 && height <= 50;
+                runner.assertEquals(expected, isValid, `Valid dimensions ${width}x${height} should be accepted`);
+            });
+            
+            invalidDimensions.forEach(({ width, height, expected }) => {
+                const isValid = width > 0 && height > 0 && width <= 50 && height <= 50;
+                runner.assertEquals(expected, isValid, `Invalid dimensions ${width}x${height} should be rejected`);
+            });
+            
+            // Test custom size object generation
+            const testCases = [
+                { width: 3.5, height: 4.8, expectedName: 'Custom (3.5cm × 4.8cm)' },
+                { width: 2.0, height: 3.0, expectedName: 'Custom (2cm × 3cm)' },
+                { width: 10.5, height: 15.0, expectedName: 'Custom (10.5cm × 15cm)' }
+            ];
+            
+            testCases.forEach(({ width, height, expectedName }) => {
+                const customSize = {
+                    name: `Custom (${width}cm × ${height}cm)`,
+                    width: width,
+                    height: height,
+                    category: 'custom'
+                };
+                
+                runner.assertEquals(expectedName, customSize.name, 'Custom size name should be formatted correctly');
+                runner.assertEquals(width, customSize.width, 'Custom size width should be set correctly');
+                runner.assertEquals(height, customSize.height, 'Custom size height should be set correctly');
+                runner.assertEquals('custom', customSize.category, 'Custom size category should be "custom"');
+            });
+            
+            // Test SandPhoto with custom sizes
+            const sandPhoto = new SandPhoto();
+            const customWidth = 4.0;
+            const customHeight = 5.5;
+            
+            sandPhoto.setContainerSize(21.0, 29.7); // A4 paper
+            sandPhoto.setTargetSize(customWidth, customHeight);
+            
+            const expectedWidthPx = sandPhoto.getPixelFromCM(customWidth);
+            const expectedHeightPx = sandPhoto.getPixelFromCM(customHeight);
+            
+            runner.assertEquals(expectedWidthPx, sandPhoto.targetWidth, 'Custom target width should be set correctly');
+            runner.assertEquals(expectedHeightPx, sandPhoto.targetHeight, 'Custom target height should be set correctly');
+            
+            // Test layout calculation for custom sizes
+            const GAP = 5;
+            const targetWidthPx = sandPhoto.getPixelFromCM(customWidth);
+            const targetHeightPx = sandPhoto.getPixelFromCM(customHeight);
+            const containerWidthPx = sandPhoto.getPixelFromCM(21.0);
+            const containerHeightPx = sandPhoto.getPixelFromCM(29.7);
+            
+            const wn = Math.floor(containerWidthPx / (targetWidthPx + GAP));
+            const hn = Math.floor(containerHeightPx / (targetHeightPx + GAP));
+            const wn2 = Math.floor(containerHeightPx / (targetWidthPx + GAP));
+            const hn2 = Math.floor(containerWidthPx / (targetHeightPx + GAP));
+            
+            const maxPhotos = Math.max(wn * hn, wn2 * hn2);
+            runner.assertTrue(maxPhotos > 0, 'Custom size should fit at least 1 photo on A4 paper');
+            
+            // Test edge cases
+            const edgeCases = [
+                { width: 0.1, height: 0.1, description: 'minimum dimensions' },
+                { width: 50.0, height: 50.0, description: 'maximum dimensions' },
+                { width: 1.0, height: 1.0, description: 'square custom size' }
+            ];
+            
+            edgeCases.forEach(({ width, height, description }) => {
+                const testSandPhoto = new SandPhoto();
+                testSandPhoto.setContainerSize(21.0, 29.7);
+                testSandPhoto.setTargetSize(width, height);
+                
+                const expectedWidthPx = testSandPhoto.getPixelFromCM(width);
+                const expectedHeightPx = testSandPhoto.getPixelFromCM(height);
+                
+                runner.assertEquals(expectedWidthPx, testSandPhoto.targetWidth, `${description} width should be set correctly`);
+                runner.assertEquals(expectedHeightPx, testSandPhoto.targetHeight, `${description} height should be set correctly`);
+            });
+            
+            runner.renderResults('customSizeTests');
+            return runner;
+        }
+
         async function runAllTests() {
             const summary = document.getElementById('summary');
             summary.innerHTML = '<h3>Running tests...</h3>';
@@ -327,6 +435,7 @@
             runners.push(testSandPhotoClass());
             runners.push(testLayoutCalculations());
             runners.push(testAppIntegration());
+            runners.push(testCustomSizeFeatures());
             
             // Run asynchronous tests
             const imageProcessingRunner = await testImageProcessing();

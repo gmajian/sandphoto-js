@@ -7,6 +7,7 @@ A pure client-side implementation of the SandPhoto ID photo generator, converted
 - **Pure Client-Side**: All processing happens in your browser - no server required
 - **Privacy First**: Your photos never leave your device
 - **Multiple Photo Sizes**: Support for various ID photo standards (Chinese, international)
+- **Custom Photo Sizes**: Create custom dimensions for special requirements
 - **Multiple Paper Sizes**: A4, 5x7, 6x4, and other standard photo paper sizes
 - **Background Colors**: White, blue, or gray backgrounds
 - **Drag & Drop**: Easy file upload with drag and drop support
@@ -17,11 +18,12 @@ A pure client-side implementation of the SandPhoto ID photo generator, converted
 
 1. **Open the Application**: Simply open `index.html` in any modern web browser
 2. **Upload Your Photo**: Drag and drop your photo or click to browse
-3. **Select Photo Size**: Choose the ID photo size you need (1寸, 2寸, passport, etc.)
-4. **Select Paper Size**: Choose the photo paper size (A4, 5x7, 6x4, etc.)
-5. **Choose Background**: Select white, blue, or gray background
-6. **Preview**: See how many photos will fit and how they'll be arranged
-7. **Download**: Get your high-quality photo sheet ready for printing
+3. **Select Photo Size**: Choose the ID photo size you need (1寸, 2寸, passport, etc.) or select "Custom Size" for custom dimensions
+4. **Enter Custom Dimensions** (if selected): Specify width and height in centimeters (0.1cm to 50cm)
+5. **Select Paper Size**: Choose the photo paper size (A4, 5x7, 6x4, etc.)
+6. **Choose Background**: Select white, blue, or gray background
+7. **Preview**: See how many photos will fit and how they'll be arranged
+8. **Download**: Get your high-quality photo sheet ready for printing
 
 ## Supported Photo Sizes
 
@@ -31,6 +33,11 @@ A pure client-side implementation of the SandPhoto ID photo generator, converted
 - 小一寸 (2.2cm × 3.2cm)
 - 2寸 (3.8cm × 5.1cm)
 - And many more...
+
+### Custom Sizes
+- **Custom Dimensions**: Enter any width and height between 0.1cm and 50cm
+- **Perfect for Special Requirements**: When standard sizes don't meet your needs
+- **Real-time Validation**: Input validation ensures reasonable dimensions
 
 ### Document Photos
 - Chinese ID Card (身份证)
@@ -107,6 +114,14 @@ sandphoto-js/
 4. Select "A4" for paper size
 5. Choose background color
 6. Download the generated sheet
+
+### Custom Size Usage
+1. Open `index.html` in your browser
+2. Upload a photo
+3. Select "Custom Size" from the photo size dropdown
+4. Enter your desired width and height (e.g., 4.0cm × 5.5cm)
+5. Select paper size and background color
+6. Preview and download the generated sheet
 
 ### For Passport Photos
 1. Upload a high-quality portrait photo
