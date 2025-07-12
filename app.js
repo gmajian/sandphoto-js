@@ -1,5 +1,37 @@
 class SandPhotoApp {
-    constructor() {
+    constructor(config = {}) {
+        this.config = {
+            language: 'en',
+            elementIds: {
+                uploadArea: 'uploadArea',
+                photoInput: 'photoInput',
+                targetTypeSelect: 'targetType',
+                containerTypeSelect: 'containerType',
+                bgColorSelect: 'bgColor',
+                previewSection: 'previewSection',
+                previewCanvas: 'previewCanvas',
+                photoCount: 'count',
+                downloadBtn: 'downloadBtn',
+                customSizeGroup: 'customSizeGroup',
+                customSizeGroup2: 'customSizeGroup2',
+                customWidthInput: 'customWidth',
+                customHeightInput: 'customHeight',
+                photoCountSelect: 'photoCountSelect',
+                customCountGroup: 'customCountGroup',
+                customPhotoCountInput: 'customPhotoCount'
+            },
+            texts: {
+                selectPhotoSize: 'Select Photo Size',
+                selectPaperSize: 'Select Paper Size',
+                customSize: 'Custom Size',
+                selectPhotoCount: 'Select Photo Count',
+                auto: 'Auto (Maximum)',
+                custom: 'Custom',
+                ...config.texts
+            },
+            ...config
+        };
+        
         this.currentImage = null;
         this.sandPhoto = null;
         this.initializeUI();
@@ -8,67 +40,94 @@ class SandPhotoApp {
     }
 
     initializeUI() {
-        this.uploadArea = document.getElementById('uploadArea');
-        this.photoInput = document.getElementById('photoInput');
-        this.targetTypeSelect = document.getElementById('targetType');
-        this.containerTypeSelect = document.getElementById('containerType');
-        this.bgColorSelect = document.getElementById('bgColor');
-        this.previewSection = document.getElementById('previewSection');
-        this.previewCanvas = document.getElementById('previewCanvas');
-        this.photoCount = document.getElementById('count');
-        this.downloadBtn = document.getElementById('downloadBtn');
+        // Get elements by configured IDs
+        this.uploadArea = document.getElementById(this.config.elementIds.uploadArea);
+        this.photoInput = document.getElementById(this.config.elementIds.photoInput);
+        this.targetTypeSelect = document.getElementById(this.config.elementIds.targetTypeSelect);
+        this.containerTypeSelect = document.getElementById(this.config.elementIds.containerTypeSelect);
+        this.bgColorSelect = document.getElementById(this.config.elementIds.bgColorSelect);
+        this.previewSection = document.getElementById(this.config.elementIds.previewSection);
+        this.previewCanvas = document.getElementById(this.config.elementIds.previewCanvas);
+        this.photoCount = document.getElementById(this.config.elementIds.photoCount);
+        this.downloadBtn = document.getElementById(this.config.elementIds.downloadBtn);
         
         // Custom size elements
-        this.customSizeGroup = document.getElementById('customSizeGroup');
-        this.customSizeGroup2 = document.getElementById('customSizeGroup2');
-        this.customWidthInput = document.getElementById('customWidth');
-        this.customHeightInput = document.getElementById('customHeight');
+        this.customSizeGroup = document.getElementById(this.config.elementIds.customSizeGroup);
+        this.customSizeGroup2 = document.getElementById(this.config.elementIds.customSizeGroup2);
+        this.customWidthInput = document.getElementById(this.config.elementIds.customWidthInput);
+        this.customHeightInput = document.getElementById(this.config.elementIds.customHeightInput);
         
         // Photo count elements
-        this.photoCountSelect = document.getElementById('photoCountSelect');
-        this.customCountGroup = document.getElementById('customCountGroup');
-        this.customPhotoCountInput = document.getElementById('customPhotoCount');
+        this.photoCountSelect = document.getElementById(this.config.elementIds.photoCountSelect);
+        this.customCountGroup = document.getElementById(this.config.elementIds.customCountGroup);
+        this.customPhotoCountInput = document.getElementById(this.config.elementIds.customPhotoCountInput);
     }
 
     setupEventListeners() {
         // File upload events
-        this.photoInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        if (this.photoInput) {
+            this.photoInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        }
         
         // Drag and drop events
-        this.uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            this.uploadArea.classList.add('dragover');
-        });
+        if (this.uploadArea) {
+            this.uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                this.uploadArea.classList.add('dragover');
+            });
 
-        this.uploadArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            this.uploadArea.classList.remove('dragover');
-        });
+            this.uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                this.uploadArea.classList.remove('dragover');
+            });
 
-        this.uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            this.uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                this.handleFile(files[0]);
-            }
-        });
+            this.uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                this.uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.handleFile(files[0]);
+                }
+            });
+
+            this.uploadArea.addEventListener('click', () => {
+                if (this.photoInput) {
+                    this.photoInput.click();
+                }
+            });
+        }
 
         // Settings change events
-        this.targetTypeSelect.addEventListener('change', () => this.handlePhotoSizeChange());
-        this.containerTypeSelect.addEventListener('change', () => this.updatePreview());
-        this.bgColorSelect.addEventListener('change', () => this.updatePreview());
+        if (this.targetTypeSelect) {
+            this.targetTypeSelect.addEventListener('change', () => this.handlePhotoSizeChange());
+        }
+        if (this.containerTypeSelect) {
+            this.containerTypeSelect.addEventListener('change', () => this.updatePreview());
+        }
+        if (this.bgColorSelect) {
+            this.bgColorSelect.addEventListener('change', () => this.updatePreview());
+        }
 
         // Custom size input events
-        this.customWidthInput.addEventListener('input', () => this.updatePreview());
-        this.customHeightInput.addEventListener('input', () => this.updatePreview());
+        if (this.customWidthInput) {
+            this.customWidthInput.addEventListener('input', () => this.updatePreview());
+        }
+        if (this.customHeightInput) {
+            this.customHeightInput.addEventListener('input', () => this.updatePreview());
+        }
 
         // Photo count events
-        this.photoCountSelect.addEventListener('change', () => this.handlePhotoCountChange());
-        this.customPhotoCountInput.addEventListener('input', () => this.updatePreview());
+        if (this.photoCountSelect) {
+            this.photoCountSelect.addEventListener('change', () => this.handlePhotoCountChange());
+        }
+        if (this.customPhotoCountInput) {
+            this.customPhotoCountInput.addEventListener('input', () => this.updatePreview());
+        }
 
         // Download button
-        this.downloadBtn.addEventListener('click', () => this.downloadImage());
+        if (this.downloadBtn) {
+            this.downloadBtn.addEventListener('click', () => this.downloadImage());
+        }
     }
 
     handlePhotoSizeChange() {
@@ -76,31 +135,40 @@ class SandPhotoApp {
         
         if (selectedValue === 'custom') {
             // Show custom size inputs with animation
-            this.customSizeGroup.style.display = 'block';
-            this.customSizeGroup2.style.display = 'block';
-            
-            // Add animation class after a brief delay
-            setTimeout(() => {
-                this.customSizeGroup.classList.add('show');
-                this.customSizeGroup2.classList.add('show');
-            }, 10);
+            if (this.customSizeGroup) {
+                this.customSizeGroup.style.display = 'block';
+                setTimeout(() => {
+                    this.customSizeGroup.classList.add('show');
+                }, 10);
+            }
+            if (this.customSizeGroup2) {
+                this.customSizeGroup2.style.display = 'block';
+                setTimeout(() => {
+                    this.customSizeGroup2.classList.add('show');
+                }, 10);
+            }
             
             // Set default values for custom size
-            if (!this.customWidthInput.value) {
+            if (this.customWidthInput && !this.customWidthInput.value) {
                 this.customWidthInput.value = '3.5';
             }
-            if (!this.customHeightInput.value) {
+            if (this.customHeightInput && !this.customHeightInput.value) {
                 this.customHeightInput.value = '4.8';
             }
         } else {
             // Hide custom size inputs
-            this.customSizeGroup.classList.remove('show');
-            this.customSizeGroup2.classList.remove('show');
-            
-            setTimeout(() => {
-                this.customSizeGroup.style.display = 'none';
-                this.customSizeGroup2.style.display = 'none';
-            }, 300);
+            if (this.customSizeGroup) {
+                this.customSizeGroup.classList.remove('show');
+                setTimeout(() => {
+                    this.customSizeGroup.style.display = 'none';
+                }, 300);
+            }
+            if (this.customSizeGroup2) {
+                this.customSizeGroup2.classList.remove('show');
+                setTimeout(() => {
+                    this.customSizeGroup2.style.display = 'none';
+                }, 300);
+            }
         }
         
         this.updatePreview();
@@ -111,24 +179,25 @@ class SandPhotoApp {
         
         if (selectedValue === 'custom') {
             // Show custom count input with animation
-            this.customCountGroup.style.display = 'block';
-            
-            // Add animation class after a brief delay
-            setTimeout(() => {
-                this.customCountGroup.classList.add('show');
-            }, 10);
+            if (this.customCountGroup) {
+                this.customCountGroup.style.display = 'block';
+                setTimeout(() => {
+                    this.customCountGroup.classList.add('show');
+                }, 10);
+            }
             
             // Set default value for custom count
-            if (!this.customPhotoCountInput.value) {
+            if (this.customPhotoCountInput && !this.customPhotoCountInput.value) {
                 this.customPhotoCountInput.value = '10';
             }
         } else {
             // Hide custom count input
-            this.customCountGroup.classList.remove('show');
-            
-            setTimeout(() => {
-                this.customCountGroup.style.display = 'none';
-            }, 300);
+            if (this.customCountGroup) {
+                this.customCountGroup.classList.remove('show');
+                setTimeout(() => {
+                    this.customCountGroup.style.display = 'none';
+                }, 300);
+            }
         }
         
         this.updatePreview();
@@ -140,32 +209,38 @@ class SandPhotoApp {
         this.containerTypes = getPhotoTypesByCategory('paper');
         
         // Populate target types (photo sizes)
-        this.targetTypeSelect.innerHTML = '<option value="">Select Photo Size</option>';
-        this.targetTypes.forEach((type, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = `${type.name} (${type.width}cm × ${type.height}cm)`;
-            this.targetTypeSelect.appendChild(option);
-        });
+        if (this.targetTypeSelect) {
+            this.targetTypeSelect.innerHTML = `<option value="">${this.config.texts.selectPhotoSize}</option>`;
+            this.targetTypes.forEach((type, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${type.name} (${type.width}cm × ${type.height}cm)`;
+                this.targetTypeSelect.appendChild(option);
+            });
 
-        // Add custom option
-        const customOption = document.createElement('option');
-        customOption.value = 'custom';
-        customOption.textContent = 'Custom Size';
-        this.targetTypeSelect.appendChild(customOption);
+            // Add custom option
+            const customOption = document.createElement('option');
+            customOption.value = 'custom';
+            customOption.textContent = this.config.texts.customSize;
+            this.targetTypeSelect.appendChild(customOption);
+
+            // Set default selection
+            this.targetTypeSelect.value = '0'; // 1寸
+        }
 
         // Populate container types (paper sizes)
-        this.containerTypeSelect.innerHTML = '<option value="">Select Paper Size</option>';
-        this.containerTypes.forEach((type, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = `${type.name} (${type.width}cm × ${type.height}cm)`;
-            this.containerTypeSelect.appendChild(option);
-        });
+        if (this.containerTypeSelect) {
+            this.containerTypeSelect.innerHTML = `<option value="">${this.config.texts.selectPaperSize}</option>`;
+            this.containerTypes.forEach((type, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${type.name} (${type.width}cm × ${type.height}cm)`;
+                this.containerTypeSelect.appendChild(option);
+            });
 
-        // Set default selections
-        this.targetTypeSelect.value = '0'; // 1寸
-        this.containerTypeSelect.value = '0'; // A4
+            // Set default selection
+            this.containerTypeSelect.value = '0'; // A4
+        }
     }
 
     handleFileSelect(event) {
@@ -178,13 +253,13 @@ class SandPhotoApp {
     handleFile(file) {
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            alert('Please select an image file.');
+            alert(this.config.texts.selectImageFile || 'Please select an image file.');
             return;
         }
 
         // Validate file size (8MB limit)
         if (file.size > 8 * 1024 * 1024) {
-            alert('File size must be less than 8MB.');
+            alert(this.config.texts.fileSizeLimit || 'File size must be less than 8MB.');
             return;
         }
 
@@ -208,21 +283,19 @@ class SandPhotoApp {
             const height = parseFloat(this.customHeightInput.value);
             
             if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
-                // Show error message for invalid custom size
                 if (this.currentImage) {
-                    alert('Please enter valid custom dimensions (width and height must be greater than 0).');
+                    alert(this.config.texts.invalidCustomSize || 'Please enter valid custom dimensions (width and height must be greater than 0).');
                 }
                 return null;
             }
             
-            // Validate reasonable limits
             if (width > 50 || height > 50) {
-                alert('Custom dimensions cannot exceed 50cm. Please enter smaller values.');
+                alert(this.config.texts.customSizeLimit || 'Custom dimensions cannot exceed 50cm. Please enter smaller values.');
                 return null;
             }
             
             return {
-                name: `Custom (${width}cm × ${height}cm)`,
+                name: `${this.config.texts.custom} (${width}cm × ${height}cm)`,
                 width: width,
                 height: height,
                 category: 'custom'
@@ -239,16 +312,14 @@ class SandPhotoApp {
             const count = parseInt(this.customPhotoCountInput.value);
             
             if (isNaN(count) || count <= 0) {
-                // Show error message for invalid custom count
                 if (this.currentImage) {
-                    alert('Please enter a valid photo count (must be greater than 0).');
+                    alert(this.config.texts.invalidPhotoCount || 'Please enter a valid photo count (must be greater than 0).');
                 }
                 return null;
             }
             
-            // Validate reasonable limits
             if (count > 100) {
-                alert('Custom photo count cannot exceed 100. Please enter a smaller value.');
+                alert(this.config.texts.photoCountLimit || 'Custom photo count cannot exceed 100. Please enter a smaller value.');
                 return null;
             }
             
@@ -260,19 +331,39 @@ class SandPhotoApp {
         }
     }
 
+    getSelectedBgColor() {
+        if (this.bgColorSelect) {
+            return this.bgColorSelect.value;
+        } else {
+            // Fallback for radio buttons (if any)
+            const selectedRadio = document.querySelector('input[name="bgcolorid"]:checked');
+            return selectedRadio ? selectedRadio.value : 'blue';
+        }
+    }
+
     updatePreview() {
         if (!this.currentImage) {
-            this.previewSection.style.display = 'none';
+            if (this.previewSection) {
+                this.previewSection.style.display = 'none';
+            }
+            if (this.downloadBtn) {
+                this.downloadBtn.disabled = true;
+            }
             return;
         }
 
         const targetType = this.getSelectedPhotoSize();
         const containerIndex = this.containerTypeSelect.value;
-        const bgColor = this.bgColorSelect.value;
+        const bgColor = this.getSelectedBgColor();
         const photoCountSetting = this.getSelectedPhotoCount();
 
         if (!targetType || !containerIndex || photoCountSetting === null) {
-            this.previewSection.style.display = 'none';
+            if (this.previewSection) {
+                this.previewSection.style.display = 'none';
+            }
+            if (this.downloadBtn) {
+                this.downloadBtn.disabled = true;
+            }
             return;
         }
 
@@ -283,16 +374,6 @@ class SandPhotoApp {
             if (!containerType) {
                 console.error('Invalid container type selection');
                 return;
-            }
-
-            // Debug information
-            console.log('Selected target type:', targetType);
-            console.log('Selected container type:', containerType);
-            console.log('Selected photo count:', photoCountSetting);
-
-            // Debug layout calculation
-            if (photoCountSetting !== 'auto') {
-                this.sandPhoto.debugLayout(photoCountSetting);
             }
 
             // Create SandPhoto instance
@@ -308,62 +389,72 @@ class SandPhotoApp {
                 photoCount = this.sandPhoto.putPhotoWithCount(this.currentImage, bgColor, photoCountSetting);
             }
 
-            // Update preview
-            const previewCanvas = this.sandPhoto.getPreviewCanvas(800, 600);
-            const previewCtx = this.previewCanvas.getContext('2d');
-            
-            // Clear and resize preview canvas
-            this.previewCanvas.width = previewCanvas.width;
-            this.previewCanvas.height = previewCanvas.height;
-            
-            // Draw preview
-            previewCtx.drawImage(previewCanvas, 0, 0);
+            // Store the photo count for download
+            this.currentPhotoCount = photoCount;
 
-            // Update photo count display
-            this.photoCount.textContent = photoCount;
+            // Update preview
+            if (this.previewCanvas) {
+                const previewCanvas = this.sandPhoto.getPreviewCanvas(800, 600);
+                
+                if (this.previewCanvas.tagName === 'CANVAS') {
+                    // Handle canvas element
+                    const previewCtx = this.previewCanvas.getContext('2d');
+                    
+                    // Clear and resize preview canvas
+                    this.previewCanvas.width = previewCanvas.width;
+                    this.previewCanvas.height = previewCanvas.height;
+                    
+                    // Draw preview
+                    previewCtx.drawImage(previewCanvas, 0, 0);
+                } else {
+                    // Handle img element
+                    this.previewCanvas.src = previewCanvas.toDataURL();
+                }
+            }
+
+            // Update photo count
+            if (this.photoCount) {
+                this.photoCount.textContent = photoCount;
+            }
 
             // Show preview section
-            this.previewSection.style.display = 'block';
+            if (this.previewSection) {
+                this.previewSection.style.display = 'block';
+            }
+            if (this.downloadBtn) {
+                this.downloadBtn.disabled = false;
+            }
 
         } catch (error) {
             console.error('Error generating preview:', error);
-            alert('Error generating preview. Please try again.');
+            alert(this.config.texts.previewError || 'Error generating preview. Please try again.');
         }
     }
 
     downloadImage() {
         if (!this.sandPhoto) {
-            alert('Please generate a preview first.');
+            alert(this.config.texts.generatePreviewFirst || 'Please generate a preview first.');
             return;
         }
 
         const targetType = this.getSelectedPhotoSize();
         const containerIndex = this.containerTypeSelect.value;
-        const bgColor = this.bgColorSelect.value;
-        const photoCountSetting = this.getSelectedPhotoCount();
-
         const containerType = this.containerTypes[parseInt(containerIndex)];
 
-        if (!targetType || !containerType || photoCountSetting === null) {
-            alert('Please select valid photo and paper sizes.');
+        if (!targetType || !containerType) {
+            alert(this.config.texts.selectValidSizes || 'Please select valid photo and paper sizes.');
             return;
         }
 
-        // Generate filename with specified count
-        let photoCount;
-        if (photoCountSetting === 'auto') {
-            photoCount = this.sandPhoto.putPhoto(this.currentImage, bgColor);
-        } else {
-            photoCount = this.sandPhoto.putPhotoWithCount(this.currentImage, bgColor, photoCountSetting);
-        }
-        
+        // Use the stored photo count
+        const photoCount = this.currentPhotoCount || 0;
         const filename = `${photoCount}张${targetType.name}[以${containerType.name}冲洗].jpg`;
 
         try {
             this.sandPhoto.downloadImage(filename);
         } catch (error) {
             console.error('Error downloading image:', error);
-            alert('Error downloading image. Please try again.');
+            alert(this.config.texts.downloadError || 'Error downloading image. Please try again.');
         }
     }
 }
