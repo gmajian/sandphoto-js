@@ -17,6 +17,12 @@ class SandPhotoApp {
         this.previewCanvas = document.getElementById('previewCanvas');
         this.photoCount = document.getElementById('count');
         this.downloadBtn = document.getElementById('downloadBtn');
+        
+        // Custom size elements
+        this.customSizeGroup = document.getElementById('customSizeGroup');
+        this.customSizeGroup2 = document.getElementById('customSizeGroup2');
+        this.customWidthInput = document.getElementById('customWidth');
+        this.customHeightInput = document.getElementById('customHeight');
     }
 
     setupEventListeners() {
@@ -44,12 +50,51 @@ class SandPhotoApp {
         });
 
         // Settings change events
-        this.targetTypeSelect.addEventListener('change', () => this.updatePreview());
+        this.targetTypeSelect.addEventListener('change', () => this.handlePhotoSizeChange());
         this.containerTypeSelect.addEventListener('change', () => this.updatePreview());
         this.bgColorSelect.addEventListener('change', () => this.updatePreview());
 
+        // Custom size input events
+        this.customWidthInput.addEventListener('input', () => this.updatePreview());
+        this.customHeightInput.addEventListener('input', () => this.updatePreview());
+
         // Download button
         this.downloadBtn.addEventListener('click', () => this.downloadImage());
+    }
+
+    handlePhotoSizeChange() {
+        const selectedValue = this.targetTypeSelect.value;
+        
+        if (selectedValue === 'custom') {
+            // Show custom size inputs with animation
+            this.customSizeGroup.style.display = 'block';
+            this.customSizeGroup2.style.display = 'block';
+            
+            // Add animation class after a brief delay
+            setTimeout(() => {
+                this.customSizeGroup.classList.add('show');
+                this.customSizeGroup2.classList.add('show');
+            }, 10);
+            
+            // Set default values for custom size
+            if (!this.customWidthInput.value) {
+                this.customWidthInput.value = '3.5';
+            }
+            if (!this.customHeightInput.value) {
+                this.customHeightInput.value = '4.8';
+            }
+        } else {
+            // Hide custom size inputs
+            this.customSizeGroup.classList.remove('show');
+            this.customSizeGroup2.classList.remove('show');
+            
+            setTimeout(() => {
+                this.customSizeGroup.style.display = 'none';
+                this.customSizeGroup2.style.display = 'none';
+            }, 300);
+        }
+        
+        this.updatePreview();
     }
 
     populatePhotoTypes() {
@@ -65,6 +110,12 @@ class SandPhotoApp {
             option.textContent = `${type.name} (${type.width}cm × ${type.height}cm)`;
             this.targetTypeSelect.appendChild(option);
         });
+
+        // Add custom option
+        const customOption = document.createElement('option');
+        customOption.value = 'custom';
+        customOption.textContent = 'Custom Size';
+        this.targetTypeSelect.appendChild(customOption);
 
         // Populate container types (paper sizes)
         this.containerTypeSelect.innerHTML = '<option value="">Select Paper Size</option>';
@@ -112,28 +163,59 @@ class SandPhotoApp {
         reader.readAsDataURL(file);
     }
 
+    getSelectedPhotoSize() {
+        const selectedValue = this.targetTypeSelect.value;
+        
+        if (selectedValue === 'custom') {
+            const width = parseFloat(this.customWidthInput.value);
+            const height = parseFloat(this.customHeightInput.value);
+            
+            if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+                // Show error message for invalid custom size
+                if (this.currentImage) {
+                    alert('Please enter valid custom dimensions (width and height must be greater than 0).');
+                }
+                return null;
+            }
+            
+            // Validate reasonable limits
+            if (width > 50 || height > 50) {
+                alert('Custom dimensions cannot exceed 50cm. Please enter smaller values.');
+                return null;
+            }
+            
+            return {
+                name: `Custom (${width}cm × ${height}cm)`,
+                width: width,
+                height: height,
+                category: 'custom'
+            };
+        } else {
+            return this.targetTypes[parseInt(selectedValue)];
+        }
+    }
+
     updatePreview() {
         if (!this.currentImage) {
             this.previewSection.style.display = 'none';
             return;
         }
 
-        const targetIndex = this.targetTypeSelect.value;
+        const targetType = this.getSelectedPhotoSize();
         const containerIndex = this.containerTypeSelect.value;
         const bgColor = this.bgColorSelect.value;
 
-        if (!targetIndex || !containerIndex) {
+        if (!targetType || !containerIndex) {
             this.previewSection.style.display = 'none';
             return;
         }
 
         try {
-            // Get photo types from the correct arrays
-            const targetType = this.targetTypes[parseInt(targetIndex)];
+            // Get container type from the correct array
             const containerType = this.containerTypes[parseInt(containerIndex)];
 
-            if (!targetType || !containerType) {
-                console.error('Invalid photo type selection');
+            if (!containerType) {
+                console.error('Invalid container type selection');
                 return;
             }
 
@@ -178,11 +260,10 @@ class SandPhotoApp {
             return;
         }
 
-        const targetIndex = this.targetTypeSelect.value;
+        const targetType = this.getSelectedPhotoSize();
         const containerIndex = this.containerTypeSelect.value;
         const bgColor = this.bgColorSelect.value;
 
-        const targetType = this.targetTypes[parseInt(targetIndex)];
         const containerType = this.containerTypes[parseInt(containerIndex)];
 
         if (!targetType || !containerType) {

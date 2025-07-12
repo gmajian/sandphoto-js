@@ -62,6 +62,11 @@
             <h3>📱 App Integration Test Suite <span class="status">Pending</span></h3>
             <div class="test-results"></div>
         </div>
+
+        <div class="test-suite" id="customSizeSuite">
+            <h3>🎯 Custom Size Features Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
     </div>
 
     <script src="phototypes.js"></script>
@@ -172,7 +177,8 @@
                     { name: 'createSandPhotoTestSuite', func: createSandPhotoTestSuite },
                     { name: 'createLayoutTestSuite', func: createLayoutTestSuite },
                     { name: 'createImageProcessingTestSuite', func: createImageProcessingTestSuite },
-                    { name: 'createAppIntegrationTestSuite', func: createAppIntegrationTestSuite }
+                    { name: 'createAppIntegrationTestSuite', func: createAppIntegrationTestSuite },
+                    { name: 'createCustomSizeTestSuite', func: createCustomSizeTestSuite }
                 ];
                 
                 // Count total tests
@@ -187,6 +193,7 @@
                 await runTestSuite('layoutSuite', createLayoutTestSuite);
                 await runTestSuite('imageProcessingSuite', createImageProcessingTestSuite);
                 await runTestSuite('appIntegrationSuite', createAppIntegrationTestSuite);
+                await runTestSuite('customSizeSuite', createCustomSizeTestSuite);
                 
                 // Final summary
                 const successRate = (passedTests / totalTests * 100).toFixed(1);

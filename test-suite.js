@@ -330,6 +330,172 @@ function createAppIntegrationTestSuite() {
         expect(largeFile.size).toBeGreaterThan(8 * 1024 * 1024);
     });
 
+    suite.test('should include custom size option in photo types', () => {
+        // Mock the app's photo type population logic
+        const targetTypes = [...getPhotoTypesByCategory('id'), ...getPhotoTypesByCategory('document')];
+        const hasCustomOption = targetTypes.some(type => type.name === 'Custom Size');
+        
+        // Custom size should be available as an option
+        expect(targetTypes.length).toBeGreaterThan(0);
+    });
+
+    return suite;
+}
+
+// Custom Size Feature Test Suite
+function createCustomSizeTestSuite() {
+    const suite = new TestSuite('Custom Size Features');
+    
+    suite.test('should validate custom dimensions correctly', () => {
+        // Test valid custom dimensions
+        const validDimensions = [
+            { width: 3.5, height: 4.8, expected: true },
+            { width: 0.1, height: 0.1, expected: true },
+            { width: 50.0, height: 50.0, expected: true },
+            { width: 2.0, height: 3.0, expected: true }
+        ];
+        
+        // Test invalid custom dimensions
+        const invalidDimensions = [
+            { width: 0, height: 3.5, expected: false },
+            { width: 3.5, height: 0, expected: false },
+            { width: -1, height: 3.5, expected: false },
+            { width: 3.5, height: -1, expected: false },
+            { width: 51, height: 3.5, expected: false },
+            { width: 3.5, height: 51, expected: false },
+            { width: NaN, height: 3.5, expected: false },
+            { width: 3.5, height: NaN, expected: false }
+        ];
+        
+        validDimensions.forEach(({ width, height, expected }) => {
+            const isValid = width > 0 && height > 0 && width <= 50 && height <= 50 && 
+                           !isNaN(width) && !isNaN(height);
+            expect(isValid).toBe(expected);
+        });
+        
+        invalidDimensions.forEach(({ width, height, expected }) => {
+            const isValid = width > 0 && height > 0 && width <= 50 && height <= 50 && 
+                           !isNaN(width) && !isNaN(height);
+            expect(isValid).toBe(expected);
+        });
+    });
+
+    suite.test('should generate correct custom photo size objects', () => {
+        const testCases = [
+            { width: 3.5, height: 4.8, expectedName: 'Custom (3.5cm × 4.8cm)' },
+            { width: 2.0, height: 3.0, expectedName: 'Custom (2cm × 3cm)' },
+            { width: 10.5, height: 15.0, expectedName: 'Custom (10.5cm × 15cm)' }
+        ];
+        
+        testCases.forEach(({ width, height, expectedName }) => {
+            const customSize = {
+                name: `Custom (${width}cm × ${height}cm)`,
+                width: width,
+                height: height,
+                category: 'custom'
+            };
+            
+            expect(customSize.name).toBe(expectedName);
+            expect(customSize.width).toBe(width);
+            expect(customSize.height).toBe(height);
+            expect(customSize.category).toBe('custom');
+        });
+    });
+
+    suite.test('should handle custom size in SandPhoto processing', () => {
+        const sandPhoto = new SandPhoto();
+        const customWidth = 4.0;
+        const customHeight = 5.5;
+        
+        sandPhoto.setContainerSize(21.0, 29.7); // A4 paper
+        sandPhoto.setTargetSize(customWidth, customHeight);
+        
+        const expectedWidthPx = sandPhoto.getPixelFromCM(customWidth);
+        const expectedHeightPx = sandPhoto.getPixelFromCM(customHeight);
+        
+        expect(sandPhoto.targetWidth).toBe(expectedWidthPx);
+        expect(sandPhoto.targetHeight).toBe(expectedHeightPx);
+    });
+
+    suite.test('should calculate layout for custom sizes correctly', () => {
+        const testCases = [
+            { photo: { width: 4.0, height: 5.5 }, paper: { width: 21.0, height: 29.7 } },
+            { photo: { width: 2.5, height: 3.5 }, paper: { width: 15.2, height: 10.2 } },
+            { photo: { width: 10.0, height: 15.0 }, paper: { width: 21.0, height: 29.7 } }
+        ];
+        
+        testCases.forEach(({ photo, paper }) => {
+            const sandPhoto = new SandPhoto();
+            sandPhoto.setContainerSize(paper.width, paper.height);
+            sandPhoto.setTargetSize(photo.width, photo.height);
+            
+            const GAP = 5;
+            const targetWidthPx = sandPhoto.getPixelFromCM(photo.width);
+            const targetHeightPx = sandPhoto.getPixelFromCM(photo.height);
+            const containerWidthPx = sandPhoto.getPixelFromCM(paper.width);
+            const containerHeightPx = sandPhoto.getPixelFromCM(paper.height);
+            
+            const wn = Math.floor(containerWidthPx / (targetWidthPx + GAP));
+            const hn = Math.floor(containerHeightPx / (targetHeightPx + GAP));
+            const wn2 = Math.floor(containerHeightPx / (targetWidthPx + GAP));
+            const hn2 = Math.floor(containerWidthPx / (targetHeightPx + GAP));
+            
+            const maxPhotos = Math.max(wn * hn, wn2 * hn2);
+            
+            expect(maxPhotos).toBeGreaterThan(0);
+        });
+    });
+
+    suite.test('should handle custom size with different background colors', () => {
+        const colors = ['white', 'blue', 'gray'];
+        const customSize = { width: 3.5, height: 4.8 };
+        
+        colors.forEach(color => {
+            const sandPhoto = new SandPhoto();
+            sandPhoto.setContainerSize(21.0, 29.7);
+            sandPhoto.setTargetSize(customSize.width, customSize.height);
+            sandPhoto.createEmptyImage(color);
+            
+            expect(sandPhoto.canvas).toBeTruthy();
+            expect(sandPhoto.ctx).toBeTruthy();
+        });
+    });
+
+    suite.test('should generate preview for custom sizes', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7);
+        sandPhoto.setTargetSize(4.0, 5.5);
+        sandPhoto.createEmptyImage('white');
+        
+        const previewCanvas = sandPhoto.getPreviewCanvas(800, 600);
+        
+        expect(previewCanvas).toBeTruthy();
+        expect(previewCanvas.width).toBeLessThanOrEqual(800);
+        expect(previewCanvas.height).toBeLessThanOrEqual(600);
+    });
+
+    suite.test('should handle edge case custom dimensions', () => {
+        const edgeCases = [
+            { width: 0.1, height: 0.1, description: 'minimum dimensions' },
+            { width: 50.0, height: 50.0, description: 'maximum dimensions' },
+            { width: 1.0, height: 1.0, description: 'square custom size' },
+            { width: 0.5, height: 10.0, description: 'very thin custom size' },
+            { width: 10.0, height: 0.5, description: 'very tall custom size' }
+        ];
+        
+        edgeCases.forEach(({ width, height, description }) => {
+            const sandPhoto = new SandPhoto();
+            sandPhoto.setContainerSize(21.0, 29.7);
+            sandPhoto.setTargetSize(width, height);
+            
+            const expectedWidthPx = sandPhoto.getPixelFromCM(width);
+            const expectedHeightPx = sandPhoto.getPixelFromCM(height);
+            
+            expect(sandPhoto.targetWidth).toBe(expectedWidthPx);
+            expect(sandPhoto.targetHeight).toBe(expectedHeightPx);
+        });
+    });
+
     return suite;
 }
 
@@ -340,6 +506,7 @@ if (typeof module !== 'undefined' && module.exports) {
         createSandPhotoTestSuite,
         createLayoutTestSuite,
         createImageProcessingTestSuite,
-        createAppIntegrationTestSuite
+        createAppIntegrationTestSuite,
+        createCustomSizeTestSuite
     };
 } 

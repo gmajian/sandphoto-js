@@ -136,6 +136,39 @@ main {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+/* Custom size input styling */
+#customSizeGroup,
+#customSizeGroup2 {
+    transition: all 0.3s ease;
+}
+
+#customSizeGroup.show,
+#customSizeGroup2.show {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Number input specific styling */
+input[type="number"].form-control {
+    -moz-appearance: textfield;
+}
+
+input[type="number"].form-control::-webkit-outer-spin-button,
+input[type="number"].form-control::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 .preview-section {
     border-top: 2px solid #eee;
     padding-top: 30px;
