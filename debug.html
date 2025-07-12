@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SandPhoto Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        canvas { border: 1px solid #000; margin: 10px; }
+        .info { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>SandPhoto Debug</h1>
+    
+    <div class="debug-section">
+        <h2>Test Case: 1寸 photos on 6寸 paper</h2>
+        <div class="info">
+            <p><strong>Expected:</strong> 16 photos should fit on 6寸 paper</p>
+            <p><strong>1寸:</strong> 2.5cm × 3.5cm</p>
+            <p><strong>6寸:</strong> 15.2cm × 10.2cm</p>
+        </div>
+        <canvas id="debugCanvas" width="800" height="600"></canvas>
+        <div id="debugInfo"></div>
+    </div>
+
+    <script src="phototypes.js"></script>
+    <script src="sandphoto.js"></script>
+    <script>
+        function debugLayout() {
+            const info = document.getElementById('debugInfo');
+            const canvas = document.getElementById('debugCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Test case: 1寸 photos on 6寸 paper
+            const sandPhoto = new SandPhoto();
+            sandPhoto.setContainerSize(15.2, 10.2); // 6寸 paper
+            sandPhoto.setTargetSize(2.5, 3.5); // 1寸 photo
+            
+            // Create a test image
+            const testImg = new Image();
+            testImg.onload = () => {
+                try {
+                    const photoCount = sandPhoto.putPhoto(testImg, 'blue');
+                    const previewCanvas = sandPhoto.getPreviewCanvas(800, 600);
+                    
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(previewCanvas, 0, 0);
+                    
+                    // Calculate expected layout
+                    const GAP = 5;
+                    const targetWidthPx = sandPhoto.getPixelFromCM(2.5);
+                    const targetHeightPx = sandPhoto.getPixelFromCM(3.5);
+                    const containerWidthPx = sandPhoto.getPixelFromCM(15.2);
+                    const containerHeightPx = sandPhoto.getPixelFromCM(10.2);
+                    
+                    const wn = Math.floor(containerWidthPx / (targetWidthPx + GAP));
+                    const hn = Math.floor(containerHeightPx / (targetHeightPx + GAP));
+                    const wn2 = Math.floor(containerHeightPx / (targetWidthPx + GAP));
+                    const hn2 = Math.floor(containerWidthPx / (targetHeightPx + GAP));
+                    
+                    const normalLayout = wn * hn;
+                    const rotatedLayout = wn2 * hn2;
+                    
+                    info.innerHTML = `
+                        <h3>Debug Information:</h3>
+                        <p><strong>Actual photos generated:</strong> ${photoCount}</p>
+                        <p><strong>Container size (px):</strong> ${containerWidthPx} × ${containerHeightPx}</p>
+                        <p><strong>Target size (px):</strong> ${targetWidthPx} × ${targetHeightPx}</p>
+                        <p><strong>Normal layout:</strong> ${wn} × ${hn} = ${normalLayout} photos</p>
+                        <p><strong>Rotated layout:</strong> ${wn2} × ${hn2} = ${rotatedLayout} photos</p>
+                        <p><strong>Gap:</strong> ${GAP}px</p>
+                        <p><strong>Expected:</strong> 16 photos</p>
+                        <p><strong>Result:</strong> ${photoCount === 16 ? '✅ CORRECT' : '❌ INCORRECT'}</p>
+                    `;
+                    
+                } catch (error) {
+                    info.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                }
+            };
+            
+            // Create a simple test image
+            const testCanvas = document.createElement('canvas');
+            testCanvas.width = 200;
+            testCanvas.height = 200;
+            const testCtx = testCanvas.getContext('2d');
+            testCtx.fillStyle = '#ff0000';
+            testCtx.fillRect(0, 0, 200, 200);
+            testCtx.fillStyle = '#ffffff';
+            testCtx.font = '20px Arial';
+            testCtx.fillText('Test Photo', 50, 100);
+            
+            testImg.src = testCanvas.toDataURL();
+        }
+        
+        window.addEventListener('load', debugLayout);
+    </script>
+</body>
+</html> 

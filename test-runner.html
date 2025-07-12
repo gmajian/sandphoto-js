@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SandPhoto Test Runner</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .test-container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-suite { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-suite h3 { margin-top: 0; color: #333; display: flex; align-items: center; }
+        .test-suite h3 .status { margin-left: auto; padding: 4px 8px; border-radius: 3px; font-size: 12px; }
+        .test-suite.passing h3 .status { background: #d4edda; color: #155724; }
+        .test-suite.failing h3 .status { background: #f8d7da; color: #721c24; }
+        .test-result { padding: 8px; margin: 5px 0; border-radius: 3px; font-size: 14px; }
+        .test-pass { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .test-fail { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        .test-details { font-family: monospace; font-size: 12px; margin-top: 5px; color: #666; }
+        .summary { background: #e2e3e5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .run-tests-btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .run-tests-btn:hover { background: #0056b3; }
+        .run-tests-btn:disabled { background: #6c757d; cursor: not-allowed; }
+        .progress-bar { width: 100%; height: 4px; background: #e9ecef; border-radius: 2px; margin: 10px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: #007bff; transition: width 0.3s ease; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 SandPhoto Test Runner</h1>
+        <button class="run-tests-btn" id="runTestsBtn" onclick="runAllTestSuites()">Run All Test Suites</button>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        
+        <div class="summary" id="summary">
+            <h3>Test Summary</h3>
+            <p>Click "Run All Test Suites" to start comprehensive testing...</p>
+        </div>
+
+        <div class="test-suite" id="photoTypesSuite">
+            <h3>📊 Photo Types Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
+
+        <div class="test-suite" id="sandPhotoSuite">
+            <h3>🔧 SandPhoto Class Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
+
+        <div class="test-suite" id="layoutSuite">
+            <h3>📐 Layout Calculation Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
+
+        <div class="test-suite" id="imageProcessingSuite">
+            <h3>🎨 Image Processing Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
+
+        <div class="test-suite" id="appIntegrationSuite">
+            <h3>📱 App Integration Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
+    </div>
+
+    <script src="phototypes.js"></script>
+    <script src="sandphoto.js"></script>
+    <script src="app.js"></script>
+    <script src="test-suite.js"></script>
+    <script>
+        let totalTests = 0;
+        let completedTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        function updateProgress() {
+            const progress = totalTests > 0 ? (completedTests / totalTests) * 100 : 0;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+        }
+
+        function updateSummary() {
+            const successRate = totalTests > 0 ? (passedTests / totalTests * 100).toFixed(1) : 0;
+            const summary = document.getElementById('summary');
+            summary.innerHTML = `
+                <h3>Test Summary</h3>
+                <p><strong>Total Tests:</strong> ${totalTests}</p>
+                <p><strong>Completed:</strong> ${completedTests}</p>
+                <p><strong>Passed:</strong> <span style="color: green;">${passedTests}</span></p>
+                <p><strong>Failed:</strong> <span style="color: red;">${failedTests}</span></p>
+                <p><strong>Success Rate:</strong> <span style="color: ${successRate >= 90 ? 'green' : successRate >= 70 ? 'orange' : 'red'};">${successRate}%</span></p>
+            `;
+        }
+
+        function renderTestSuiteResults(suiteId, results) {
+            const suiteElement = document.getElementById(suiteId);
+            const resultsContainer = suiteElement.querySelector('.test-results');
+            const statusElement = suiteElement.querySelector('.status');
+            
+            resultsContainer.innerHTML = '';
+            
+            let suitePassed = 0;
+            let suiteFailed = 0;
+            
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result test-${result.status}`;
+                
+                if (result.status === 'pass') {
+                    suitePassed++;
+                    div.innerHTML = `✅ ${result.name}`;
+                } else {
+                    suiteFailed++;
+                    div.innerHTML = `
+                        ❌ ${result.name}
+                        <div class="test-details">Error: ${result.error}</div>
+                    `;
+                }
+                
+                resultsContainer.appendChild(div);
+            });
+            
+            // Update suite status
+            if (suiteFailed === 0) {
+                suiteElement.classList.add('passing');
+                suiteElement.classList.remove('failing');
+                statusElement.textContent = 'Passed';
+                statusElement.style.background = '#d4edda';
+                statusElement.style.color = '#155724';
+            } else {
+                suiteElement.classList.add('failing');
+                suiteElement.classList.remove('passing');
+                statusElement.textContent = 'Failed';
+                statusElement.style.background = '#f8d7da';
+                statusElement.style.color = '#721c24';
+            }
+            
+            return { passed: suitePassed, failed: suiteFailed };
+        }
+
+        async function runTestSuite(suiteId, createSuiteFunction) {
+            const suite = createSuiteFunction();
+            const results = await suite.run();
+            
+            const { passed, failed } = renderTestSuiteResults(suiteId, results);
+            
+            passedTests += passed;
+            failedTests += failed;
+            completedTests += results.length;
+            
+            updateProgress();
+            updateSummary();
+            
+            return results;
+        }
+
+        async function runAllTestSuites() {
+            const runBtn = document.getElementById('runTestsBtn');
+            runBtn.disabled = true;
+            runBtn.textContent = 'Running Tests...';
+            
+            // Reset counters
+            totalTests = 0;
+            completedTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+            
+            try {
+                // Check if test functions exist
+                const testFunctions = [
+                    { name: 'createPhotoTypesTestSuite', func: createPhotoTypesTestSuite },
+                    { name: 'createSandPhotoTestSuite', func: createSandPhotoTestSuite },
+                    { name: 'createLayoutTestSuite', func: createLayoutTestSuite },
+                    { name: 'createImageProcessingTestSuite', func: createImageProcessingTestSuite },
+                    { name: 'createAppIntegrationTestSuite', func: createAppIntegrationTestSuite }
+                ];
+                
+                // Count total tests
+                const suites = testFunctions.map(tf => tf.func());
+                totalTests = suites.reduce((sum, suite) => sum + suite.tests.length, 0);
+                updateProgress();
+                updateSummary();
+                
+                // Run all test suites
+                await runTestSuite('photoTypesSuite', createPhotoTypesTestSuite);
+                await runTestSuite('sandPhotoSuite', createSandPhotoTestSuite);
+                await runTestSuite('layoutSuite', createLayoutTestSuite);
+                await runTestSuite('imageProcessingSuite', createImageProcessingTestSuite);
+                await runTestSuite('appIntegrationSuite', createAppIntegrationTestSuite);
+                
+                // Final summary
+                const successRate = (passedTests / totalTests * 100).toFixed(1);
+                const summary = document.getElementById('summary');
+                summary.innerHTML += `
+                    <div style="margin-top: 15px; padding: 10px; background: ${successRate >= 90 ? '#d4edda' : successRate >= 70 ? '#fff3cd' : '#f8d7da'}; border-radius: 3px;">
+                        <strong>${successRate >= 90 ? '🎉 All tests passed!' : successRate >= 70 ? '⚠️ Some tests failed' : '❌ Many tests failed'}</strong>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Test runner error:', error);
+                const summary = document.getElementById('summary');
+                summary.innerHTML += `
+                    <div style="margin-top: 15px; padding: 10px; background: #f8d7da; border-radius: 3px;">
+                        <strong>❌ Test runner error: ${error.message}</strong>
+                    </div>
+                `;
+            } finally {
+                runBtn.disabled = false;
+                runBtn.textContent = 'Run All Test Suites';
+            }
+        }
+    </script>
+</body>
+</html> 
