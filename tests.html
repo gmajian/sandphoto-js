@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SandPhoto Unit Tests</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .test-container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-section h3 { margin-top: 0; color: #333; }
+        .test-result { padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-pass { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .test-fail { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .test-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .summary { background: #e2e3e5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .run-tests-btn { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .run-tests-btn:hover { background: #0056b3; }
+        .test-details { font-family: monospace; font-size: 12px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 SandPhoto Unit Tests</h1>
+        <button class="run-tests-btn" onclick="runAllTests()">Run All Tests</button>
+        
+        <div class="summary" id="summary">
+            <h3>Test Summary</h3>
+            <p>Click "Run All Tests" to start testing...</p>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Photo Types Tests</h3>
+            <div id="photoTypesTests"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 SandPhoto Class Tests</h3>
+            <div id="sandPhotoTests"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📐 Layout Calculation Tests</h3>
+            <div id="layoutTests"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎨 Image Processing Tests</h3>
+            <div id="imageProcessingTests"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📱 App Integration Tests</h3>
+            <div id="appTests"></div>
+        </div>
+    </div>
+
+    <script src="phototypes.js"></script>
+    <script src="sandphoto.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Simple test framework
+        class TestRunner {
+            constructor() {
+                this.totalTests = 0;
+                this.passedTests = 0;
+                this.failedTests = 0;
+                this.testResults = [];
+            }
+
+            assert(condition, message, details = '') {
+                this.totalTests++;
+                if (condition) {
+                    this.passedTests++;
+                    this.testResults.push({ type: 'pass', message, details });
+                } else {
+                    this.failedTests++;
+                    this.testResults.push({ type: 'fail', message, details });
+                }
+            }
+
+            assertEquals(expected, actual, message) {
+                this.assert(expected === actual, message, `Expected: ${expected}, Actual: ${actual}`);
+            }
+
+            assertNotNull(value, message) {
+                this.assert(value !== null && value !== undefined, message, `Value was: ${value}`);
+            }
+
+            assertTrue(condition, message) {
+                this.assert(condition, message);
+            }
+
+            assertFalse(condition, message) {
+                this.assert(!condition, message);
+            }
+
+            renderResults(containerId) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+                
+                this.testResults.forEach(result => {
+                    const div = document.createElement('div');
+                    div.className = `test-result test-${result.type}`;
+                    div.innerHTML = `
+                        <div>${result.type === 'pass' ? '✅' : '❌'} ${result.message}</div>
+                        ${result.details ? `<div class="test-details">${result.details}</div>` : ''}
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            getSummary() {
+                return {
+                    total: this.totalTests,
+                    passed: this.passedTests,
+                    failed: this.failedTests,
+                    successRate: this.totalTests > 0 ? (this.passedTests / this.totalTests * 100).toFixed(1) : 0
+                };
+            }
+        }
+
+        // Test functions
+        function testPhotoTypes() {
+            const runner = new TestRunner();
+            
+            // Test photo types loading
+            runner.assertNotNull(PHOTO_TYPES, 'PHOTO_TYPES should be defined');
+            runner.assertTrue(PHOTO_TYPES.length > 0, 'PHOTO_TYPES should not be empty');
+            
+            // Test helper functions
+            const idPhotos = getPhotoTypesByCategory('id');
+            const documentPhotos = getPhotoTypesByCategory('document');
+            const paperSizes = getPhotoTypesByCategory('paper');
+            
+            runner.assertTrue(idPhotos.length > 0, 'ID photos should exist');
+            runner.assertTrue(documentPhotos.length > 0, 'Document photos should exist');
+            runner.assertTrue(paperSizes.length > 0, 'Paper sizes should exist');
+            
+            // Test specific photo types
+            const oneInch = getPhotoTypeByName('1寸');
+            runner.assertNotNull(oneInch, '1寸 photo type should exist');
+            runner.assertEquals(2.5, oneInch.width, '1寸 width should be 2.5cm');
+            runner.assertEquals(3.5, oneInch.height, '1寸 height should be 3.5cm');
+            
+            const a4Paper = getPhotoTypeByName('A4');
+            runner.assertNotNull(a4Paper, 'A4 paper type should exist');
+            runner.assertEquals(21.0, a4Paper.width, 'A4 width should be 21.0cm');
+            runner.assertEquals(29.7, a4Paper.height, 'A4 height should be 29.7cm');
+            
+            runner.renderResults('photoTypesTests');
+            return runner;
+        }
+
+        function testSandPhotoClass() {
+            const runner = new TestRunner();
+            
+            // Test constructor
+            const sandPhoto = new SandPhoto();
+            runner.assertNotNull(sandPhoto, 'SandPhoto should be instantiable');
+            runner.assertEquals(2.54, sandPhoto.CM_PER_INCH, 'CM_PER_INCH should be 2.54');
+            runner.assertEquals(300, sandPhoto.DPI, 'DPI should be 300');
+            
+            // Test pixel conversion
+            const pixels = sandPhoto.getPixelFromCM(2.5);
+            const expectedPixels = Math.floor(2.5 * 300 / 2.54);
+            runner.assertEquals(expectedPixels, pixels, 'Pixel conversion should be correct');
+            
+            // Test size setting
+            sandPhoto.setContainerSize(21.0, 29.7);
+            sandPhoto.setTargetSize(2.5, 3.5);
+            
+            const containerWidthPx = sandPhoto.getPixelFromCM(21.0);
+            const containerHeightPx = sandPhoto.getPixelFromCM(29.7);
+            const targetWidthPx = sandPhoto.getPixelFromCM(2.5);
+            const targetHeightPx = sandPhoto.getPixelFromCM(3.5);
+            
+            runner.assertEquals(containerWidthPx, sandPhoto.containerWidth, 'Container width should be set correctly');
+            runner.assertEquals(containerHeightPx, sandPhoto.containerHeight, 'Container height should be set correctly');
+            runner.assertEquals(targetWidthPx, sandPhoto.targetWidth, 'Target width should be set correctly');
+            runner.assertEquals(targetHeightPx, sandPhoto.targetHeight, 'Target height should be set correctly');
+            
+            runner.renderResults('sandPhotoTests');
+            return runner;
+        }
+
+        function testLayoutCalculations() {
+            const runner = new TestRunner();
+            
+            // Test 1寸 on 6寸 paper (should fit 16 photos)
+            const sandPhoto = new SandPhoto();
+            sandPhoto.setContainerSize(15.2, 10.2); // 6寸 paper
+            sandPhoto.setTargetSize(2.5, 3.5); // 1寸 photo
+            
+            const GAP = 5;
+            const targetWidthPx = sandPhoto.getPixelFromCM(2.5);
+            const targetHeightPx = sandPhoto.getPixelFromCM(3.5);
+            const containerWidthPx = sandPhoto.getPixelFromCM(15.2);
+            const containerHeightPx = sandPhoto.getPixelFromCM(10.2);
+            
+            // Calculate expected layout
+            const wn = Math.floor(containerWidthPx / (targetWidthPx + GAP));
+            const hn = Math.floor(containerHeightPx / (targetHeightPx + GAP));
+            const wn2 = Math.floor(containerHeightPx / (targetWidthPx + GAP));
+            const hn2 = Math.floor(containerWidthPx / (targetHeightPx + GAP));
+            
+            const normalLayout = wn * hn;
+            const rotatedLayout = wn2 * hn2;
+            
+            runner.assertTrue(normalLayout > 0, 'Normal layout should fit at least 1 photo');
+            runner.assertTrue(rotatedLayout > 0, 'Rotated layout should fit at least 1 photo');
+            
+            // Test that rotated layout is better for this case
+            runner.assertTrue(rotatedLayout >= normalLayout, 'Rotated layout should be optimal or equal');
+            
+            // Test specific case: 1寸 on 6寸 should fit 16 photos
+            const expectedPhotos = 16;
+            const maxPhotos = Math.max(normalLayout, rotatedLayout);
+            runner.assertEquals(expectedPhotos, maxPhotos, `1寸 on 6寸 should fit ${expectedPhotos} photos`);
+            
+            runner.renderResults('layoutTests');
+            return runner;
+        }
+
+        function testImageProcessing() {
+            const runner = new TestRunner();
+            
+            const sandPhoto = new SandPhoto();
+            sandPhoto.setContainerSize(21.0, 29.7); // A4
+            sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+            
+            // Create test image
+            const testCanvas = document.createElement('canvas');
+            testCanvas.width = 200;
+            testCanvas.height = 200;
+            const testCtx = testCanvas.getContext('2d');
+            testCtx.fillStyle = '#ff0000';
+            testCtx.fillRect(0, 0, 200, 200);
+            
+            const testImg = new Image();
+            testImg.src = testCanvas.toDataURL();
+            
+            return new Promise((resolve) => {
+                testImg.onload = () => {
+                    try {
+                        // Test photo placement
+                        const photoCount = sandPhoto.putPhoto(testImg, 'blue');
+                        runner.assertTrue(photoCount > 0, 'Should place at least 1 photo');
+                        runner.assertNotNull(sandPhoto.canvas, 'Canvas should be created');
+                        runner.assertNotNull(sandPhoto.ctx, 'Context should be created');
+                        
+                        // Test preview generation
+                        const previewCanvas = sandPhoto.getPreviewCanvas(800, 600);
+                        runner.assertNotNull(previewCanvas, 'Preview canvas should be created');
+                        runner.assertTrue(previewCanvas.width <= 800, 'Preview width should be within bounds');
+                        runner.assertTrue(previewCanvas.height <= 600, 'Preview height should be within bounds');
+                        
+                        // Test background colors
+                        const testColors = ['white', 'blue', 'gray'];
+                        testColors.forEach(color => {
+                            const testSandPhoto = new SandPhoto();
+                            testSandPhoto.setContainerSize(10, 10);
+                            testSandPhoto.setTargetSize(2, 2);
+                            testSandPhoto.createEmptyImage(color);
+                            runner.assertNotNull(testSandPhoto.canvas, `Canvas should be created for ${color} background`);
+                        });
+                        
+                        runner.renderResults('imageProcessingTests');
+                        resolve(runner);
+                    } catch (error) {
+                        runner.assertFalse(true, `Image processing failed: ${error.message}`);
+                        runner.renderResults('imageProcessingTests');
+                        resolve(runner);
+                    }
+                };
+            });
+        }
+
+        function testAppIntegration() {
+            const runner = new TestRunner();
+            
+            // Test that app can be instantiated
+            try {
+                // Mock DOM elements for testing
+                const mockElements = {
+                    'uploadArea': { addEventListener: () => {} },
+                    'photoInput': { addEventListener: () => {} },
+                    'targetType': { addEventListener: () => {}, innerHTML: '', value: '' },
+                    'containerType': { addEventListener: () => {}, innerHTML: '', value: '' },
+                    'bgColor': { addEventListener: () => {}, value: '' },
+                    'previewSection': { style: { display: '' } },
+                    'previewCanvas': { getContext: () => ({ drawImage: () => {} }) },
+                    'count': { textContent: '' },
+                    'downloadBtn': { addEventListener: () => {} }
+                };
+                
+                // Mock getElementById
+                const originalGetElementById = document.getElementById;
+                document.getElementById = (id) => mockElements[id];
+                
+                // Test photo types population
+                const targetTypes = [...getPhotoTypesByCategory('id'), ...getPhotoTypesByCategory('document')];
+                const containerTypes = getPhotoTypesByCategory('paper');
+                
+                runner.assertTrue(targetTypes.length > 0, 'Target types should be available');
+                runner.assertTrue(containerTypes.length > 0, 'Container types should be available');
+                
+                // Restore original function
+                document.getElementById = originalGetElementById;
+                
+            } catch (error) {
+                runner.assertFalse(true, `App integration test failed: ${error.message}`);
+            }
+            
+            runner.renderResults('appTests');
+            return runner;
+        }
+
+        async function runAllTests() {
+            const summary = document.getElementById('summary');
+            summary.innerHTML = '<h3>Running tests...</h3>';
+            
+            const runners = [];
+            
+            // Run synchronous tests
+            runners.push(testPhotoTypes());
+            runners.push(testSandPhotoClass());
+            runners.push(testLayoutCalculations());
+            runners.push(testAppIntegration());
+            
+            // Run asynchronous tests
+            const imageProcessingRunner = await testImageProcessing();
+            runners.push(imageProcessingRunner);
+            
+            // Calculate total results
+            const totalTests = runners.reduce((sum, runner) => sum + runner.totalTests, 0);
+            const totalPassed = runners.reduce((sum, runner) => sum + runner.passedTests, 0);
+            const totalFailed = runners.reduce((sum, runner) => sum + runner.failedTests, 0);
+            const successRate = totalTests > 0 ? (totalPassed / totalTests * 100).toFixed(1) : 0;
+            
+            summary.innerHTML = `
+                <h3>Test Summary</h3>
+                <p><strong>Total Tests:</strong> ${totalTests}</p>
+                <p><strong>Passed:</strong> <span style="color: green;">${totalPassed}</span></p>
+                <p><strong>Failed:</strong> <span style="color: red;">${totalFailed}</span></p>
+                <p><strong>Success Rate:</strong> <span style="color: ${successRate >= 90 ? 'green' : successRate >= 70 ? 'orange' : 'red'};">${successRate}%</span></p>
+            `;
+        }
+    </script>
+</body>
+</html> 

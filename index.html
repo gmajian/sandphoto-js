@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SandPhoto - ID Photo Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📸 SandPhoto</h1>
+            <p>Generate ID photos efficiently - save money on photo printing!</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <h3>Choose Your Photo</h3>
+                        <p>Drag & drop your photo here or click to browse</p>
+                        <input type="file" id="photoInput" accept="image/*" hidden>
+                        <button class="upload-btn" onclick="document.getElementById('photoInput').click()">
+                            Select Photo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-grid">
+                    <div class="setting-group">
+                        <label for="targetType">Photo Size:</label>
+                        <select id="targetType" class="form-control">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="containerType">Paper Size:</label>
+                        <select id="containerType" class="form-control">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="bgColor">Background Color:</label>
+                        <select id="bgColor" class="form-control">
+                            <option value="white">White</option>
+                            <option value="blue" selected>Blue</option>
+                            <option value="gray">Gray</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <h3>Preview</h3>
+                <div class="preview-container">
+                    <canvas id="previewCanvas" width="800" height="600"></canvas>
+                </div>
+                <div class="preview-info">
+                    <p id="photoCount">Photos that will fit: <span id="count">0</span></p>
+                    <button id="downloadBtn" class="download-btn">Download Photo Sheet</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Pure client-side implementation - your photos never leave your device!</p>
+        </footer>
+    </div>
+
+    <script src="phototypes.js"></script>
+    <script src="sandphoto.js"></script>
+    <script src="app.js"></script>
+</body>
+</html> 
