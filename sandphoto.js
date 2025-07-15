@@ -34,37 +34,38 @@ class SandPhoto {
         this.canvas.height = this.containerHeight;
         this.ctx = this.canvas.getContext('2d');
 
-        // Set background color
-        let bgColor;
-        switch(bgColorId) {
-            case "white":
-                bgColor = "#FFFFFF";
-                break;
-            case "blue":
-                bgColor = "#000078";
-                break;
-            case "gray":
-                bgColor = "#808080";
-                break;
-            default:
-                bgColor = "#000078";
-        }
-
-        this.ctx.fillStyle = bgColor;
+        // Always set background to white
+        this.ctx.fillStyle = '#FFFFFF';
         this.ctx.fillRect(0, 0, this.containerWidth, this.containerHeight);
 
         // Add watermark
-        this.ctx.fillStyle = "#FFFFFF";
+        // Determine language for watermark
+        let lang = 'en';
+        if (window && window.sandPhotoApp && window.sandPhotoApp.config && window.sandPhotoApp.config.language) {
+            lang = window.sandPhotoApp.config.language.toLowerCase();
+        } else if (typeof SandPhotoApp !== 'undefined' && SandPhotoApp.prototype && SandPhotoApp.prototype.config && SandPhotoApp.prototype.config.language) {
+            lang = SandPhotoApp.prototype.config.language.toLowerCase();
+        }
+        let watermark = (lang === 'zh') ? 'www.sandcomp.com/blog/sandphoto' : 'www.sandcomp.com/blog/sandphoto-en';
+        this.ctx.fillStyle = "#888888";
         this.ctx.font = "16px Arial";
-        const watermark = "sandphoto-js";
         const textMetrics = this.ctx.measureText(watermark);
         this.ctx.fillText(watermark, 
             this.containerWidth - textMetrics.width - 10, 
             this.containerHeight - 10);
     }
 
+    // Helper to get border color from separatorColorId
+    getBorderColor(separatorColorId) {
+        switch (separatorColorId) {
+            case 'white': return '#FFFFFF';
+            case 'gray': return '#808080';
+            default: return '#000078'; // blue
+        }
+    }
+
     // Process and place photos on the canvas
-    putPhoto(imageElement, bgColorId = "blue") {
+    putPhoto(imageElement, separatorColorId = "blue") {
         const img = imageElement;
         const w = img.naturalWidth;
         const h = img.naturalHeight;
@@ -86,7 +87,7 @@ class SandPhoto {
             cutX = 0;
         }
 
-        const GAP = 5;
+        const GAP = 0; // No gap between photos
 
         // Calculate how many photos can fit
         let wn = Math.floor(this.containerWidth / (this.targetWidth + GAP));
@@ -112,7 +113,7 @@ class SandPhoto {
         // Create canvas with proper dimensions
         this.containerWidth = finalContainerWidth;
         this.containerHeight = finalContainerHeight;
-        this.createEmptyImage(bgColorId);
+        this.createEmptyImage(separatorColorId);
 
         // Calculate starting position to center the photos
         const totalWidth = wn * (this.targetWidth + GAP) - GAP;
@@ -120,16 +121,24 @@ class SandPhoto {
         const wStart = (this.containerWidth - totalWidth) / 2;
         const hStart = (this.containerHeight - totalHeight) / 2;
 
+        // Determine border color
+        let borderColor = this.getBorderColor(separatorColorId);
+
         // Place photos on canvas
         for (let i = 0; i < wn; i++) {
             const posX = wStart + (this.targetWidth + GAP) * i;
             for (let j = 0; j < hn; j++) {
                 const posY = hStart + (this.targetHeight + GAP) * j;
-                
                 this.ctx.drawImage(img, 
                     cutX, cutY, cutW, cutH,  // Source rectangle
                     posX, posY, this.targetWidth, this.targetHeight  // Destination rectangle
                 );
+                // Draw 1px border around each photo
+                this.ctx.save();
+                this.ctx.strokeStyle = borderColor;
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(posX + 0.5, posY + 0.5, this.targetWidth - 1, this.targetHeight - 1);
+                this.ctx.restore();
             }
         }
 
@@ -137,7 +146,7 @@ class SandPhoto {
     }
 
     // Process and place photos on the canvas with specified count
-    putPhotoWithCount(imageElement, bgColorId = "blue", targetCount) {
+    putPhotoWithCount(imageElement, separatorColorId = "blue", targetCount) {
         const img = imageElement;
         const w = img.naturalWidth;
         const h = img.naturalHeight;
@@ -159,20 +168,20 @@ class SandPhoto {
             cutX = 0;
         }
 
-        const GAP = 5;
+        const GAP = 0; // No gap between photos
 
         // Calculate optimal layout for the target count
         let bestLayout = this.calculateOptimalLayout(targetCount, GAP);
         
         if (!bestLayout) {
             // Fallback to maximum layout if target count is too high
-            return this.putPhoto(imageElement, bgColorId);
+            return this.putPhoto(imageElement, separatorColorId);
         }
 
         // Create canvas with proper dimensions
         this.containerWidth = bestLayout.containerWidth;
         this.containerHeight = bestLayout.containerHeight;
-        this.createEmptyImage(bgColorId);
+        this.createEmptyImage(separatorColorId);
 
         // Calculate starting position to center the photos
         const totalWidth = bestLayout.cols * (this.targetWidth + GAP) - GAP;
@@ -180,17 +189,25 @@ class SandPhoto {
         const wStart = (this.containerWidth - totalWidth) / 2;
         const hStart = (this.containerHeight - totalHeight) / 2;
 
+        // Determine border color
+        let borderColor = this.getBorderColor(separatorColorId);
+
         // Place photos on canvas up to the target count
         let placedCount = 0;
         for (let i = 0; i < bestLayout.cols && placedCount < targetCount; i++) {
             const posX = wStart + (this.targetWidth + GAP) * i;
             for (let j = 0; j < bestLayout.rows && placedCount < targetCount; j++) {
                 const posY = hStart + (this.targetHeight + GAP) * j;
-                
                 this.ctx.drawImage(img, 
                     cutX, cutY, cutW, cutH,  // Source rectangle
                     posX, posY, this.targetWidth, this.targetHeight  // Destination rectangle
                 );
+                // Draw 1px border around each photo
+                this.ctx.save();
+                this.ctx.strokeStyle = borderColor;
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(posX + 0.5, posY + 0.5, this.targetWidth - 1, this.targetHeight - 1);
+                this.ctx.restore();
                 placedCount++;
             }
         }
