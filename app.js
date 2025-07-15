@@ -454,7 +454,21 @@ class SandPhotoApp {
 
         // Use the stored photo count
         const photoCount = this.currentPhotoCount || 0;
-        const filename = `${photoCount}张${targetType.name}[以${containerType.name}冲洗].jpg`;
+        const lang = (this.config.language || 'en').toLowerCase();
+        const filenameTemplates = {
+            en: (count, photo, paper) => `${count}pcs_${photo}_on_${paper}.jpg`,
+            zh: (count, photo, paper) => `${count}张${photo}[以${paper}冲洗].jpg`,
+            es: (count, photo, paper) => `${count}uds_${photo}_en_${paper}.jpg`,
+            fr: (count, photo, paper) => `${count}pcs_${photo}_sur_${paper}.jpg`,
+            de: (count, photo, paper) => `${count}stk_${photo}_auf_${paper}.jpg`,
+            ja: (count, photo, paper) => `${count}枚_${photo}_（${paper}）.jpg`,
+            ko: (count, photo, paper) => `${count}매_${photo}_(${paper}).jpg`,
+            ru: (count, photo, paper) => `${count}шт_${photo}_на_${paper}.jpg`,
+            ar: (count, photo, paper) => `${count}قطع_${photo}_على_${paper}.jpg`,
+            pt: (count, photo, paper) => `${count}un_${photo}_em_${paper}.jpg`,
+        };
+        const template = filenameTemplates[lang] || filenameTemplates['en'];
+        const filename = template(photoCount, targetType.name, containerType.name);
 
         try {
             this.sandPhoto.downloadImage(filename);
