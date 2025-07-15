@@ -294,7 +294,7 @@ class SandPhoto {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        }, 'image/jpeg', 0.95);
+        }, 'image/jpeg', 1.0);
     }
 
     // Get the main canvas for high-quality output
