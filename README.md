@@ -171,25 +171,27 @@ new SandPhotoApp(config);
 
 ## Demo Pages
 
-- **`index.html`**: Main English interface
-- **`blog-integration.html`**: Chinese blog integration
-- **`dynamic-demo.html`**: Language switching demo
-- **`multi-language-demo.html`**: Comprehensive multi-language showcase
+- **`index.html`**: Main user interface
+- **`debug.html`**: Debug/testing interface
+- **`tests.html`**: Test suite runner
+- **`test-runner.html`**: Additional test runner
 
 ## File Structure
 
 ```
 sandphoto-js/
-├── app.js                 # Main application logic
-├── sandphoto.js          # Core photo processing
-├── ui-generator.js       # Dynamic UI generation
-├── phototypes.js         # Photo type definitions
-├── styles.css            # Styling
-├── index.html            # Main English page
-├── blog-integration.html # Chinese blog page
-├── dynamic-demo.html     # Language switching demo
-├── multi-language-demo.html # Multi-language showcase
-└── README.md            # This file
+├── app.js              # Main application logic
+├── sandphoto.js        # Core photo processing
+├── ui-generator.js     # Dynamic UI generation
+├── phototypes.js       # Photo type definitions
+├── styles.css          # Styling
+├── index.html          # Main user page
+├── debug.html          # Debug/testing page
+├── test-suite.js       # Test suite logic
+├── tests.html          # Test suite runner
+├── test-runner.html    # Additional test runner
+├── LICENSE             # License file
+└── README.md           # This file
 ```
 
 ## Browser Support
