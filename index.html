@@ -29,25 +29,26 @@
     <script src="ui-generator.js"></script>
     <script src="app.js"></script>
     <script>
-        // Initialize the main page with English configuration
+        // Set your language here (only one place)
+        const language = 'zh'; // Change to 'zh', 'es', etc. as needed
+
         document.addEventListener('DOMContentLoaded', () => {
-            // Create UI generator with English config and canvas preview
+            // Get the config for the selected language
+            const langConfig = UIGenerator.getLanguageConfig(language);
             const uiConfig = {
-                ...UIGenerator.getEnglishConfig(),
+                ...langConfig,
                 previewType: 'canvas'
             };
             const uiGenerator = new UIGenerator(uiConfig);
-            
+
             // Generate the complete form
             const form = uiGenerator.generateCompleteForm('sandphoto-form');
-            
-            // Add the form to the container
             const container = document.getElementById('sandphoto-form-container');
             container.appendChild(form);
-            
+
             // Create app with main page configuration
             const mainConfig = {
-                language: 'en',
+                language: language,
                 elementIds: {
                     uploadArea: 'uploadArea',
                     photoInput: 'filename',
@@ -66,9 +67,9 @@
                     customCountGroup: 'photoCountSection',
                     customPhotoCountInput: 'customPhotoCount'
                 },
-                texts: UIGenerator.getEnglishConfig().texts
+                texts: langConfig.texts
             };
-            
+
             new SandPhotoApp(mainConfig);
         });
     </script>
