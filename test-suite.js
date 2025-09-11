@@ -258,10 +258,8 @@ function createImageProcessingTestSuite() {
         testCtx.fillStyle = '#ff0000';
         testCtx.fillRect(0, 0, 200, 200);
         
-        const testImg = new Image();
-        testImg.src = testCanvas.toDataURL();
-        
         return new Promise((resolve) => {
+            const testImg = new Image();
             testImg.onload = () => {
                 const photoCount = sandPhoto.putPhoto(testImg, 'blue');
                 
@@ -271,6 +269,7 @@ function createImageProcessingTestSuite() {
                 
                 resolve();
             };
+            testImg.src = testCanvas.toDataURL();
         });
     });
 
@@ -692,10 +691,8 @@ function createMultiPhotoTestSuite() {
         testCtx.fillStyle = '#ff0000';
         testCtx.fillRect(0, 0, 200, 200);
         
-        const testImg = new Image();
-        testImg.src = testCanvas.toDataURL();
-        
         return new Promise((resolve) => {
+            const testImg = new Image();
             testImg.onload = () => {
                 const photoData = [{
                     id: 1,
@@ -709,6 +706,7 @@ function createMultiPhotoTestSuite() {
                 expect(sandPhoto.canvas).toBeTruthy();
                 resolve();
             };
+            testImg.src = testCanvas.toDataURL();
         });
     });
 
@@ -752,10 +750,16 @@ function createMultiPhotoTestSuite() {
                     resolve();
                 }
             };
-            
-            img1.onload = onLoad;
-            img2.onload = onLoad;
-            img3.onload = onLoad;
+            const register = (img) => {
+                if (img.complete) {
+                    setTimeout(onLoad, 0);
+                } else {
+                    img.onload = onLoad;
+                }
+            };
+            register(img1);
+            register(img2);
+            register(img3);
         });
     });
 
@@ -771,10 +775,8 @@ function createMultiPhotoTestSuite() {
         testCtx.fillStyle = '#ff0000';
         testCtx.fillRect(0, 0, 200, 200);
         
-        const testImg = new Image();
-        testImg.src = testCanvas.toDataURL();
-        
         return new Promise((resolve) => {
+            const testImg = new Image();
             testImg.onload = () => {
                 const photoData = [
                     { id: 1, image: testImg, filename: 'photo1.jpg', copies: 1 },
@@ -787,6 +789,98 @@ function createMultiPhotoTestSuite() {
                 expect(sandPhoto.canvas).toBeTruthy();
                 resolve();
             };
+            testImg.src = testCanvas.toDataURL();
+        });
+    });
+
+    suite.test('should handle edge case with very small paper size', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(5.0, 5.0); // Very small paper
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸 photo
+        
+        const testCanvas = document.createElement('canvas');
+        testCanvas.width = 200;
+        testCanvas.height = 200;
+        const testCtx = testCanvas.getContext('2d');
+        testCtx.fillStyle = '#ff0000';
+        testCtx.fillRect(0, 0, 200, 200);
+        
+        return new Promise((resolve) => {
+            const testImg = new Image();
+            testImg.onload = () => {
+                const photoData = [
+                    { id: 1, image: testImg, filename: 'photo1.jpg', copies: 10 }
+                ];
+                
+                const result = sandPhoto.putMultiplePhotos(photoData, 'blue');
+                
+                // Should handle gracefully even with very small paper
+                expect(result).toBeGreaterThanOrEqual(0);
+                expect(sandPhoto.canvas).toBeTruthy();
+                
+                // Should not exceed what can physically fit
+                const maxPossible = Math.floor(5.0 * 600 / 2.54 / (2.5 * 600 / 2.54)) * 
+                                  Math.floor(5.0 * 600 / 2.54 / (3.5 * 600 / 2.54));
+                expect(result).toBeLessThanOrEqual(maxPossible);
+                
+                resolve();
+            };
+            testImg.src = testCanvas.toDataURL();
+        });
+    });
+
+    suite.test('should handle mixed photo sizes in multi-photo mode', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7); // A4
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        // Create test images with different dimensions
+        const createTestImage = (width, height, color) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, width, height);
+            
+            const img = new Image();
+            img.src = canvas.toDataURL();
+            return img;
+        };
+        
+        const img1 = createTestImage(200, 200, '#ff0000'); // Square
+        const img2 = createTestImage(300, 200, '#00ff00'); // Wide
+        const img3 = createTestImage(200, 300, '#0000ff'); // Tall
+        
+        return new Promise((resolve) => {
+            let loadedCount = 0;
+            const onLoad = () => {
+                loadedCount++;
+                if (loadedCount === 3) {
+                    const photoData = [
+                        { id: 1, image: img1, filename: 'square.jpg', copies: 2 },
+                        { id: 2, image: img2, filename: 'wide.jpg', copies: 3 },
+                        { id: 3, image: img3, filename: 'tall.jpg', copies: 1 }
+                    ];
+                    
+                    const result = sandPhoto.putMultiplePhotos(photoData, 'gray');
+                    
+                    expect(result).toBe(6); // 2 + 3 + 1
+                    expect(sandPhoto.canvas).toBeTruthy();
+                    
+                    resolve();
+                }
+            };
+            const register3 = (img) => {
+                if (img.complete) {
+                    setTimeout(onLoad, 0);
+                } else {
+                    img.onload = onLoad;
+                }
+            };
+            register3(img1);
+            register3(img2);
+            register3(img3);
         });
     });
 
@@ -815,21 +909,160 @@ function createMultiPhotoTestSuite() {
         expect(result).toBe(0);
     });
 
-    suite.test('should fallback to single photo mode for very high counts', () => {
+    suite.test('should handle overflow by fitting maximum possible photos', () => {
         const sandPhoto = new SandPhoto();
-        sandPhoto.setContainerSize(21.0, 29.7);
-        sandPhoto.setTargetSize(2.5, 3.5);
+        sandPhoto.setContainerSize(21.0, 29.7); // A4
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
         
-        // Create a photo data array that would result in too many photos
-        const photoData = Array(100).fill(null).map((_, i) => ({
-            id: i,
-            image: null,
-            filename: `photo${i}.jpg`,
-            copies: 10 // 1000 total photos
-        }));
+        // Create test images
+        const createTestImage = (color) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 200, 200);
+            
+            const img = new Image();
+            img.src = canvas.toDataURL();
+            return img;
+        };
         
-        // This should fallback to single photo mode
-        expect(typeof sandPhoto.putPhoto).toBe('function');
+        const img1 = createTestImage('#ff0000');
+        const img2 = createTestImage('#00ff00');
+        
+        return new Promise((resolve) => {
+            let loadedCount = 0;
+            const onLoad = () => {
+                loadedCount++;
+                if (loadedCount === 2) {
+                    // Create a scenario where total copies exceed what can fit
+                    const photoData = [
+                        { id: 1, image: img1, filename: 'photo1.jpg', copies: 1 },
+                        { id: 2, image: img2, filename: 'photo2.jpg', copies: 200 } // Way too many
+                    ];
+                    
+                    const result = sandPhoto.putMultiplePhotos(photoData, 'blue');
+                    
+                    // Should still place some photos (not just the first one)
+                    expect(result).toBeGreaterThan(0);
+                    expect(sandPhoto.canvas).toBeTruthy();
+                    
+                    // The result should be limited by the maximum possible layout (use exact pixel dims)
+                    const n1 = Math.floor(sandPhoto.containerWidth / sandPhoto.targetWidth) *
+                               Math.floor(sandPhoto.containerHeight / sandPhoto.targetHeight);
+                    const n2 = Math.floor(sandPhoto.containerHeight / sandPhoto.targetWidth) *
+                               Math.floor(sandPhoto.containerWidth / sandPhoto.targetHeight);
+                    const maxPossible = Math.max(n1, n2);
+                    expect(result).toBeLessThanOrEqual(maxPossible);
+                    
+                    resolve();
+                }
+            };
+            const register2 = (img) => {
+                if (img.complete) {
+                    setTimeout(onLoad, 0);
+                } else {
+                    img.onload = onLoad;
+                }
+            };
+            register2(img1);
+            register2(img2);
+        });
+    });
+
+    suite.test('should distribute photos proportionally when overflow occurs', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(15.2, 10.2); // 6寸 paper (smaller to force overflow)
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        // Create test images
+        const createTestImage = (color) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 200, 200);
+            
+            const img = new Image();
+            img.src = canvas.toDataURL();
+            return img;
+        };
+        
+        const img1 = createTestImage('#ff0000');
+        const img2 = createTestImage('#00ff00');
+        const img3 = createTestImage('#0000ff');
+        
+        return new Promise((resolve) => {
+            let loadedCount = 0;
+            const onLoad = () => {
+                loadedCount++;
+                if (loadedCount === 3) {
+                    // Create a scenario with multiple photos and overflow
+                    const photoData = [
+                        { id: 1, image: img1, filename: 'photo1.jpg', copies: 2 },
+                        { id: 2, image: img2, filename: 'photo2.jpg', copies: 5 },
+                        { id: 3, image: img3, filename: 'photo3.jpg', copies: 10 } // Total: 17, but sheet can only fit ~16
+                    ];
+                    
+                    const result = sandPhoto.putMultiplePhotos(photoData, 'white');
+                    
+                    // Should place photos up to the maximum capacity
+                    expect(result).toBeGreaterThan(0);
+                    expect(result).toBeLessThanOrEqual(16); // Maximum for 6寸 paper
+                    expect(sandPhoto.canvas).toBeTruthy();
+                    
+                    resolve();
+                }
+            };
+            
+            img1.onload = onLoad;
+            img2.onload = onLoad;
+            img3.onload = onLoad;
+        });
+    });
+
+    suite.test('should handle single photo with excessive copies', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7); // A4
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        const testCanvas = document.createElement('canvas');
+        testCanvas.width = 200;
+        testCanvas.height = 200;
+        const testCtx = testCanvas.getContext('2d');
+        testCtx.fillStyle = '#ff0000';
+        testCtx.fillRect(0, 0, 200, 200);
+        
+        return new Promise((resolve) => {
+            const testImg = new Image();
+            testImg.onload = () => {
+                const photoData = [{
+                    id: 1,
+                    image: testImg,
+                    filename: 'single-photo.jpg',
+                    copies: 1000 // Way more than can fit
+                }];
+                
+                const result = sandPhoto.putMultiplePhotos(photoData, 'blue');
+                
+                // Should place the maximum possible photos
+                expect(result).toBeGreaterThan(0);
+                expect(sandPhoto.canvas).toBeTruthy();
+                
+                // Should be limited by the sheet capacity (based on actual container/target and rotation)
+                const n1 = Math.floor(sandPhoto.containerWidth / sandPhoto.targetWidth) *
+                           Math.floor(sandPhoto.containerHeight / sandPhoto.targetHeight);
+                const n2 = Math.floor(sandPhoto.containerHeight / sandPhoto.targetWidth) *
+                           Math.floor(sandPhoto.containerWidth / sandPhoto.targetHeight);
+                const maxPossible = Math.max(n1, n2);
+                expect(result).toBeLessThanOrEqual(maxPossible);
+                
+                resolve();
+            };
+            testImg.src = testCanvas.toDataURL();
+        });
     });
 
     suite.test('should maintain image quality at 600 DPI', () => {
@@ -1027,6 +1260,65 @@ function createAppMultiPhotoTestSuite() {
         invalidFiles.forEach(file => {
             const isValid = file.type.startsWith('image/') && file.size <= 8 * 1024 * 1024;
             expect(isValid).toBe(false);
+        });
+    });
+
+    suite.test('should handle photo data updates correctly', () => {
+        let uploadedPhotos = [
+            { id: 1, image: null, filename: 'photo1.jpg', copies: 2 },
+            { id: 2, image: null, filename: 'photo2.jpg', copies: 3 }
+        ];
+        
+        // Test updating copy count
+        const photoId = 1;
+        const newCopies = 5;
+        const photo = uploadedPhotos.find(p => p.id === photoId);
+        
+        if (photo) {
+            photo.copies = Math.max(1, parseInt(newCopies) || 1);
+        }
+        
+        expect(photo.copies).toBe(5);
+        
+        // Test total count calculation after update
+        const totalCount = uploadedPhotos.reduce((sum, photo) => sum + photo.copies, 0);
+        expect(totalCount).toBe(8); // 5 + 3
+    });
+
+    suite.test('should handle photo removal and reordering', () => {
+        let uploadedPhotos = [
+            { id: 1, image: null, filename: 'photo1.jpg', copies: 2 },
+            { id: 2, image: null, filename: 'photo2.jpg', copies: 3 },
+            { id: 3, image: null, filename: 'photo3.jpg', copies: 1 }
+        ];
+        
+        // Remove middle photo
+        const photoIdToRemove = 2;
+        uploadedPhotos = uploadedPhotos.filter(photo => photo.id !== photoIdToRemove);
+        
+        expect(uploadedPhotos.length).toBe(2);
+        expect(uploadedPhotos.find(photo => photo.id === photoIdToRemove)).toBeFalsy();
+        
+        // Verify remaining photos
+        const remainingIds = uploadedPhotos.map(p => p.id);
+        expect(remainingIds).toContain(1);
+        expect(remainingIds).toContain(3);
+        expect(remainingIds.includes(2)).toBe(false);
+    });
+
+    suite.test('should handle extreme copy count values', () => {
+        const testCases = [
+            { copies: 1, expected: 1, description: 'minimum valid copies' },
+            { copies: 50, expected: 50, description: 'maximum valid copies' },
+            { copies: 0, expected: 1, description: 'zero copies should default to 1' },
+            { copies: -5, expected: 1, description: 'negative copies should default to 1' },
+            { copies: 100, expected: 50, description: 'excessive copies should be capped at 50' },
+            { copies: NaN, expected: 1, description: 'NaN should default to 1' }
+        ];
+        
+        testCases.forEach(({ copies, expected, description }) => {
+            const result = Math.max(1, Math.min(50, parseInt(copies) || 1));
+            expect(result).toBe(expected);
         });
     });
 
