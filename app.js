@@ -18,7 +18,14 @@ class SandPhotoApp {
                 customHeightInput: 'customHeight',
                 photoCountSelect: 'photoCountSelect',
                 customCountGroup: 'customCountGroup',
-                customPhotoCountInput: 'customPhotoCount'
+                customPhotoCountInput: 'customPhotoCount',
+                // Multi-photo elements
+                singleUploadArea: 'singleUploadArea',
+                multiUploadArea: 'multiUploadArea',
+                multiFileInput: 'multiFilename',
+                photoListContainer: 'photoListContainer',
+                photoList: 'photoList',
+                uploadModeRadios: 'uploadMode'
             },
             texts: {
                 selectPhotoSize: 'Select Photo Size',
@@ -34,6 +41,8 @@ class SandPhotoApp {
         
         this.currentImage = null;
         this.sandPhoto = null;
+        this.uploadedPhotos = []; // Array to store multiple photos with their copy counts
+        this.isMultiPhotoMode = false;
         this.initializeUI();
         this.setupEventListeners();
         this.populatePhotoTypes();
@@ -61,6 +70,13 @@ class SandPhotoApp {
         this.photoCountSelect = document.getElementById(this.config.elementIds.photoCountSelect);
         this.customCountGroup = document.getElementById(this.config.elementIds.customCountGroup);
         this.customPhotoCountInput = document.getElementById(this.config.elementIds.customPhotoCountInput);
+        
+        // Multi-photo elements
+        this.singleUploadArea = document.getElementById(this.config.elementIds.singleUploadArea);
+        this.multiUploadArea = document.getElementById(this.config.elementIds.multiUploadArea);
+        this.multiFileInput = document.getElementById(this.config.elementIds.multiFileInput);
+        this.photoListContainer = document.getElementById(this.config.elementIds.photoListContainer);
+        this.photoList = document.getElementById(this.config.elementIds.photoList);
     }
 
     setupEventListeners() {
@@ -69,30 +85,69 @@ class SandPhotoApp {
             this.photoInput.addEventListener('change', (e) => this.handleFileSelect(e));
         }
         
-        // Drag and drop events
-        if (this.uploadArea) {
-            this.uploadArea.addEventListener('dragover', (e) => {
+        // Multi-file upload events
+        if (this.multiFileInput) {
+            this.multiFileInput.addEventListener('change', (e) => this.handleMultiFileSelect(e));
+        }
+        
+        // Upload mode toggle events
+        const uploadModeRadios = document.querySelectorAll('input[name="uploadMode"]');
+        uploadModeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => this.handleUploadModeChange(e));
+        });
+        
+        // Drag and drop events for single upload
+        if (this.singleUploadArea) {
+            this.singleUploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                this.uploadArea.classList.add('dragover');
+                this.singleUploadArea.classList.add('dragover');
             });
 
-            this.uploadArea.addEventListener('dragleave', (e) => {
+            this.singleUploadArea.addEventListener('dragleave', (e) => {
                 e.preventDefault();
-                this.uploadArea.classList.remove('dragover');
+                this.singleUploadArea.classList.remove('dragover');
             });
 
-            this.uploadArea.addEventListener('drop', (e) => {
+            this.singleUploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
-                this.uploadArea.classList.remove('dragover');
+                this.singleUploadArea.classList.remove('dragover');
                 const files = e.dataTransfer.files;
                 if (files.length > 0) {
                     this.handleFile(files[0]);
                 }
             });
 
-            this.uploadArea.addEventListener('click', () => {
+            this.singleUploadArea.addEventListener('click', () => {
                 if (this.photoInput) {
                     this.photoInput.click();
+                }
+            });
+        }
+        
+        // Drag and drop events for multi upload
+        if (this.multiUploadArea) {
+            this.multiUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                this.multiUploadArea.classList.add('dragover');
+            });
+
+            this.multiUploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                this.multiUploadArea.classList.remove('dragover');
+            });
+
+            this.multiUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                this.multiUploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.handleMultiFiles(files);
+                }
+            });
+
+            this.multiUploadArea.addEventListener('click', () => {
+                if (this.multiFileInput) {
+                    this.multiFileInput.click();
                 }
             });
         }
@@ -281,6 +336,173 @@ class SandPhotoApp {
         reader.readAsDataURL(file);
     }
 
+    handleMultiFileSelect(event) {
+        const files = Array.from(event.target.files);
+        this.handleMultiFiles(files);
+    }
+
+    handleMultiFiles(files) {
+        // Filter valid image files
+        const validFiles = files.filter(file => {
+            if (!file.type.startsWith('image/')) {
+                alert(`File ${file.name} is not an image file.`);
+                return false;
+            }
+            if (file.size > 8 * 1024 * 1024) {
+                alert(`File ${file.name} is too large (must be less than 8MB).`);
+                return false;
+            }
+            return true;
+        });
+
+        if (validFiles.length === 0) return;
+
+        // Process each file
+        validFiles.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    this.addPhotoToList(img, file.name);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    addPhotoToList(img, filename) {
+        const photoData = {
+            id: Date.now() + Math.random(), // Unique ID
+            image: img,
+            filename: filename,
+            copies: 1
+        };
+        
+        this.uploadedPhotos.push(photoData);
+        this.updatePhotoList();
+        this.updatePreview();
+    }
+
+    removePhotoFromList(photoId) {
+        this.uploadedPhotos = this.uploadedPhotos.filter(photo => photo.id !== photoId);
+        this.updatePhotoList();
+        this.updatePreview();
+    }
+
+    updatePhotoCopies(photoId, copies) {
+        const photo = this.uploadedPhotos.find(p => p.id === photoId);
+        if (photo) {
+            photo.copies = Math.max(1, parseInt(copies) || 1);
+            this.updatePreview();
+        }
+    }
+
+    updatePhotoList() {
+        if (!this.photoList) return;
+
+        this.photoList.innerHTML = '';
+        
+        this.uploadedPhotos.forEach(photo => {
+            const photoItem = document.createElement('div');
+            photoItem.style.display = 'flex';
+            photoItem.style.alignItems = 'center';
+            photoItem.style.marginBottom = '10px';
+            photoItem.style.padding = '8px';
+            photoItem.style.border = '1px solid #ddd';
+            photoItem.style.borderRadius = '4px';
+            photoItem.style.backgroundColor = '#f9f9f9';
+
+            // Thumbnail
+            const thumbnail = document.createElement('canvas');
+            thumbnail.width = 60;
+            thumbnail.height = 60;
+            const ctx = thumbnail.getContext('2d');
+            
+            // Draw scaled image
+            const scale = Math.min(60 / photo.image.width, 60 / photo.image.height);
+            const scaledWidth = photo.image.width * scale;
+            const scaledHeight = photo.image.height * scale;
+            const offsetX = (60 - scaledWidth) / 2;
+            const offsetY = (60 - scaledHeight) / 2;
+            
+            ctx.drawImage(photo.image, offsetX, offsetY, scaledWidth, scaledHeight);
+            
+            // Filename
+            const filenameSpan = document.createElement('span');
+            filenameSpan.textContent = photo.filename;
+            filenameSpan.style.flex = '1';
+            filenameSpan.style.marginLeft = '10px';
+            filenameSpan.style.fontSize = '14px';
+            filenameSpan.style.overflow = 'hidden';
+            filenameSpan.style.textOverflow = 'ellipsis';
+            filenameSpan.style.whiteSpace = 'nowrap';
+
+            // Copies input
+            const copiesLabel = document.createElement('label');
+            copiesLabel.textContent = this.config.texts.photoCopies || 'Copies:';
+            copiesLabel.style.marginRight = '5px';
+            copiesLabel.style.fontSize = '14px';
+
+            const copiesInput = document.createElement('input');
+            copiesInput.type = 'number';
+            copiesInput.min = '1';
+            copiesInput.max = '50';
+            copiesInput.value = photo.copies;
+            copiesInput.style.width = '60px';
+            copiesInput.style.marginRight = '10px';
+            copiesInput.addEventListener('change', (e) => {
+                this.updatePhotoCopies(photo.id, e.target.value);
+            });
+
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = this.config.texts.removePhoto || 'Remove';
+            removeBtn.type = 'button';
+            removeBtn.style.backgroundColor = '#ff4444';
+            removeBtn.style.color = 'white';
+            removeBtn.style.border = 'none';
+            removeBtn.style.padding = '5px 10px';
+            removeBtn.style.borderRadius = '3px';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.addEventListener('click', () => {
+                this.removePhotoFromList(photo.id);
+            });
+
+            photoItem.appendChild(thumbnail);
+            photoItem.appendChild(filenameSpan);
+            photoItem.appendChild(copiesLabel);
+            photoItem.appendChild(copiesInput);
+            photoItem.appendChild(removeBtn);
+            
+            this.photoList.appendChild(photoItem);
+        });
+    }
+
+    handleUploadModeChange(event) {
+        const mode = event.target.value;
+        this.isMultiPhotoMode = (mode === 'multi');
+        
+        if (this.isMultiPhotoMode) {
+            if (this.singleUploadArea) this.singleUploadArea.style.display = 'none';
+            if (this.multiUploadArea) this.multiUploadArea.style.display = 'block';
+            if (this.photoListContainer) this.photoListContainer.style.display = 'block';
+            if (this.photoCountSelect) this.photoCountSelect.style.display = 'none';
+            if (this.customCountGroup) this.customCountGroup.style.display = 'none';
+        } else {
+            if (this.singleUploadArea) this.singleUploadArea.style.display = 'block';
+            if (this.multiUploadArea) this.multiUploadArea.style.display = 'none';
+            if (this.photoListContainer) this.photoListContainer.style.display = 'none';
+            if (this.photoCountSelect) this.photoCountSelect.style.display = 'block';
+            if (this.customCountGroup) this.customCountGroup.style.display = 'block';
+            // Clear multi-photo data
+            this.uploadedPhotos = [];
+            this.currentImage = null;
+        }
+        
+        this.updatePreview();
+    }
+
     getSelectedPhotoSize() {
         const selectedValue = this.targetTypeSelect.value;
         
@@ -348,7 +570,10 @@ class SandPhotoApp {
     }
 
     updatePreview() {
-        if (!this.currentImage) {
+        // Check if we have photos to process
+        const hasPhotos = this.isMultiPhotoMode ? this.uploadedPhotos.length > 0 : this.currentImage;
+        
+        if (!hasPhotos) {
             if (this.previewSection) {
                 this.previewSection.style.display = 'none';
             }
@@ -361,9 +586,8 @@ class SandPhotoApp {
         const targetType = this.getSelectedPhotoSize();
         const containerIndex = this.containerTypeSelect.value;
         const bgColor = this.getSelectedBgColor();
-        const photoCountSetting = this.getSelectedPhotoCount();
 
-        if (!targetType || !containerIndex || photoCountSetting === null) {
+        if (!targetType || !containerIndex) {
             if (this.previewSection) {
                 this.previewSection.style.display = 'none';
             }
@@ -371,6 +595,20 @@ class SandPhotoApp {
                 this.downloadBtn.disabled = true;
             }
             return;
+        }
+
+        // For single photo mode, check photo count setting
+        if (!this.isMultiPhotoMode) {
+            const photoCountSetting = this.getSelectedPhotoCount();
+            if (photoCountSetting === null) {
+                if (this.previewSection) {
+                    this.previewSection.style.display = 'none';
+                }
+                if (this.downloadBtn) {
+                    this.downloadBtn.disabled = true;
+                }
+                return;
+            }
         }
 
         try {
@@ -387,12 +625,19 @@ class SandPhotoApp {
             this.sandPhoto.setContainerSize(containerType.width, containerType.height);
             this.sandPhoto.setTargetSize(targetType.width, targetType.height);
 
-            // Generate the photo sheet with specified count
             let photoCount;
-            if (photoCountSetting === 'auto') {
-                photoCount = this.sandPhoto.putPhoto(this.currentImage, bgColor);
+
+            if (this.isMultiPhotoMode) {
+                // Multi-photo mode: process all uploaded photos
+                photoCount = this.sandPhoto.putMultiplePhotos(this.uploadedPhotos, bgColor);
             } else {
-                photoCount = this.sandPhoto.putPhotoWithCount(this.currentImage, bgColor, photoCountSetting);
+                // Single photo mode: use existing logic
+                const photoCountSetting = this.getSelectedPhotoCount();
+                if (photoCountSetting === 'auto') {
+                    photoCount = this.sandPhoto.putPhoto(this.currentImage, bgColor);
+                } else {
+                    photoCount = this.sandPhoto.putPhotoWithCount(this.currentImage, bgColor, photoCountSetting);
+                }
             }
 
             // Store the photo count for download
@@ -455,20 +700,42 @@ class SandPhotoApp {
         // Use the stored photo count
         const photoCount = this.currentPhotoCount || 0;
         const lang = (this.config.language || 'en').toLowerCase();
-        const filenameTemplates = {
-            en: (count, photo, paper) => `${count}pcs_${photo}_on_${paper}.jpg`,
-            zh: (count, photo, paper) => `${count}张${photo}[以${paper}冲洗].jpg`,
-            es: (count, photo, paper) => `${count}uds_${photo}_en_${paper}.jpg`,
-            fr: (count, photo, paper) => `${count}pcs_${photo}_sur_${paper}.jpg`,
-            de: (count, photo, paper) => `${count}stk_${photo}_auf_${paper}.jpg`,
-            ja: (count, photo, paper) => `${count}枚_${photo}_（${paper}）.jpg`,
-            ko: (count, photo, paper) => `${count}매_${photo}_(${paper}).jpg`,
-            ru: (count, photo, paper) => `${count}шт_${photo}_на_${paper}.jpg`,
-            ar: (count, photo, paper) => `${count}قطع_${photo}_على_${paper}.jpg`,
-            pt: (count, photo, paper) => `${count}un_${photo}_em_${paper}.jpg`,
-        };
-        const template = filenameTemplates[lang] || filenameTemplates['en'];
-        const filename = template(photoCount, targetType.name, containerType.name);
+        
+        let filename;
+        if (this.isMultiPhotoMode) {
+            // Multi-photo mode: create filename based on number of different photos
+            const uniquePhotos = this.uploadedPhotos.length;
+            const filenameTemplates = {
+                en: (count, unique, photo, paper) => `${count}pcs_${unique}photos_${photo}_on_${paper}.jpg`,
+                zh: (count, unique, photo, paper) => `${count}张${unique}种${photo}[以${paper}冲洗].jpg`,
+                es: (count, unique, photo, paper) => `${count}uds_${unique}fotos_${photo}_en_${paper}.jpg`,
+                fr: (count, unique, photo, paper) => `${count}pcs_${unique}photos_${photo}_sur_${paper}.jpg`,
+                de: (count, unique, photo, paper) => `${count}stk_${unique}fotos_${photo}_auf_${paper}.jpg`,
+                ja: (count, unique, photo, paper) => `${count}枚_${unique}種類_${photo}_（${paper}）.jpg`,
+                ko: (count, unique, photo, paper) => `${count}매_${unique}종류_${photo}_(${paper}).jpg`,
+                ru: (count, unique, photo, paper) => `${count}шт_${unique}фото_${photo}_на_${paper}.jpg`,
+                ar: (count, unique, photo, paper) => `${count}قطع_${unique}صورة_${photo}_على_${paper}.jpg`,
+                pt: (count, unique, photo, paper) => `${count}un_${unique}fotos_${photo}_em_${paper}.jpg`,
+            };
+            const template = filenameTemplates[lang] || filenameTemplates['en'];
+            filename = template(photoCount, uniquePhotos, targetType.name, containerType.name);
+        } else {
+            // Single photo mode: use existing filename logic
+            const filenameTemplates = {
+                en: (count, photo, paper) => `${count}pcs_${photo}_on_${paper}.jpg`,
+                zh: (count, photo, paper) => `${count}张${photo}[以${paper}冲洗].jpg`,
+                es: (count, photo, paper) => `${count}uds_${photo}_en_${paper}.jpg`,
+                fr: (count, photo, paper) => `${count}pcs_${photo}_sur_${paper}.jpg`,
+                de: (count, photo, paper) => `${count}stk_${photo}_auf_${paper}.jpg`,
+                ja: (count, photo, paper) => `${count}枚_${photo}_（${paper}）.jpg`,
+                ko: (count, photo, paper) => `${count}매_${photo}_(${paper}).jpg`,
+                ru: (count, photo, paper) => `${count}шт_${photo}_на_${paper}.jpg`,
+                ar: (count, photo, paper) => `${count}قطع_${photo}_على_${paper}.jpg`,
+                pt: (count, photo, paper) => `${count}un_${photo}_em_${paper}.jpg`,
+            };
+            const template = filenameTemplates[lang] || filenameTemplates['en'];
+            filename = template(photoCount, targetType.name, containerType.name);
+        }
 
         try {
             this.sandPhoto.downloadImage(filename);

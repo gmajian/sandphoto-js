@@ -72,6 +72,21 @@
             <h3>📊 Photo Count Control Test Suite <span class="status">Pending</span></h3>
             <div class="test-results"></div>
         </div>
+
+        <div class="test-suite" id="multiPhotoSuite">
+            <h3>🖼️ Multi-Photo Features Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
+
+        <div class="test-suite" id="appMultiPhotoSuite">
+            <h3>📱 App Multi-Photo Integration Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
+
+        <div class="test-suite" id="uiGeneratorMultiPhotoSuite">
+            <h3>🎨 UI Generator Multi-Photo Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
     </div>
 
     <script src="phototypes.js"></script>
@@ -184,7 +199,10 @@
                     { name: 'createImageProcessingTestSuite', func: createImageProcessingTestSuite },
                     { name: 'createAppIntegrationTestSuite', func: createAppIntegrationTestSuite },
                     { name: 'createCustomSizeTestSuite', func: createCustomSizeTestSuite },
-                    { name: 'createPhotoCountTestSuite', func: createPhotoCountTestSuite }
+                    { name: 'createPhotoCountTestSuite', func: createPhotoCountTestSuite },
+                    { name: 'createMultiPhotoTestSuite', func: createMultiPhotoTestSuite },
+                    { name: 'createAppMultiPhotoTestSuite', func: createAppMultiPhotoTestSuite },
+                    { name: 'createUIGeneratorMultiPhotoTestSuite', func: createUIGeneratorMultiPhotoTestSuite }
                 ];
                 
                 // Count total tests
@@ -201,6 +219,9 @@
                 await runTestSuite('appIntegrationSuite', createAppIntegrationTestSuite);
                 await runTestSuite('customSizeSuite', createCustomSizeTestSuite);
                 await runTestSuite('photoCountSuite', createPhotoCountTestSuite);
+                await runTestSuite('multiPhotoSuite', createMultiPhotoTestSuite);
+                await runTestSuite('appMultiPhotoSuite', createAppMultiPhotoTestSuite);
+                await runTestSuite('uiGeneratorMultiPhotoSuite', createUIGeneratorMultiPhotoTestSuite);
                 
                 // Final summary
                 const successRate = (passedTests / totalTests * 100).toFixed(1);
