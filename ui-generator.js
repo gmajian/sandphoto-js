@@ -30,10 +30,15 @@ class UIGenerator {
                 customCount: 'Custom Photo Count:',
                 
                 // File upload section
-                uploadTitle: 'Upload Photo',
-                uploadDescription: 'Upload your photo to be arranged on the sheet',
-                dragDropText: 'Drag and drop photo here or click to select file',
-                selectFile: 'Select File',
+                uploadTitle: 'Upload Photo(s)',
+                uploadDescription: 'Upload your photos to be arranged on the sheet',
+                dragDropText: 'Drag and drop photos here or click to select files',
+                selectFile: 'Select Files',
+                multiPhotoMode: 'Multi-Photo Mode',
+                singlePhotoMode: 'Single Photo Mode',
+                addPhoto: 'Add Photo',
+                removePhoto: 'Remove',
+                photoCopies: 'Copies:',
                 
                 // Preview section
                 previewTitle: 'Preview',
@@ -294,9 +299,43 @@ class UIGenerator {
         const title = document.createElement('strong');
         title.textContent = this.config.texts.uploadTitle;
         
-        const uploadArea = document.createElement('div');
-        uploadArea.id = 'uploadArea';
-        uploadArea.className = 'upload-area';
+        // Mode toggle
+        const modeToggle = document.createElement('div');
+        modeToggle.style.marginBottom = '15px';
+        
+        const singleModeLabel = document.createElement('label');
+        singleModeLabel.style.marginRight = '15px';
+        singleModeLabel.style.cursor = 'pointer';
+        
+        const singleModeRadio = document.createElement('input');
+        singleModeRadio.type = 'radio';
+        singleModeRadio.name = 'uploadMode';
+        singleModeRadio.value = 'single';
+        singleModeRadio.checked = true;
+        singleModeRadio.style.marginRight = '5px';
+        
+        singleModeLabel.appendChild(singleModeRadio);
+        singleModeLabel.appendChild(document.createTextNode(this.config.texts.singlePhotoMode));
+        
+        const multiModeLabel = document.createElement('label');
+        multiModeLabel.style.cursor = 'pointer';
+        
+        const multiModeRadio = document.createElement('input');
+        multiModeRadio.type = 'radio';
+        multiModeRadio.name = 'uploadMode';
+        multiModeRadio.value = 'multi';
+        multiModeRadio.style.marginRight = '5px';
+        
+        multiModeLabel.appendChild(multiModeRadio);
+        multiModeLabel.appendChild(document.createTextNode(this.config.texts.multiPhotoMode));
+        
+        modeToggle.appendChild(singleModeLabel);
+        modeToggle.appendChild(multiModeLabel);
+        
+        // Single photo upload area
+        const singleUploadArea = document.createElement('div');
+        singleUploadArea.id = 'singleUploadArea';
+        singleUploadArea.className = 'upload-area';
         
         const icon = document.createElement('div');
         icon.style.fontSize = '2em';
@@ -312,15 +351,64 @@ class UIGenerator {
         fileInput.accept = 'image/*';
         fileInput.style.display = 'none';
         
-        uploadArea.appendChild(icon);
-        uploadArea.appendChild(text);
-        uploadArea.appendChild(fileInput);
+        singleUploadArea.appendChild(icon);
+        singleUploadArea.appendChild(text);
+        singleUploadArea.appendChild(fileInput);
+        
+        // Multi-photo upload area
+        const multiUploadArea = document.createElement('div');
+        multiUploadArea.id = 'multiUploadArea';
+        multiUploadArea.className = 'upload-area';
+        multiUploadArea.style.display = 'none';
+        
+        const multiIcon = document.createElement('div');
+        multiIcon.style.fontSize = '2em';
+        multiIcon.style.marginBottom = '10px';
+        multiIcon.textContent = '📁';
+        
+        const multiText = document.createElement('p');
+        multiText.textContent = this.config.texts.dragDropText;
+        
+        const multiFileInput = document.createElement('input');
+        multiFileInput.type = 'file';
+        multiFileInput.id = 'multiFilename';
+        multiFileInput.accept = 'image/*';
+        multiFileInput.multiple = true;
+        multiFileInput.style.display = 'none';
+        
+        multiUploadArea.appendChild(multiIcon);
+        multiUploadArea.appendChild(multiText);
+        multiUploadArea.appendChild(multiFileInput);
+        
+        // Photo list container
+        const photoListContainer = document.createElement('div');
+        photoListContainer.id = 'photoListContainer';
+        photoListContainer.style.display = 'none';
+        photoListContainer.style.marginTop = '15px';
+        
+        const photoListTitle = document.createElement('h4');
+        photoListTitle.textContent = 'Uploaded Photos:';
+        photoListTitle.style.marginBottom = '10px';
+        
+        const photoList = document.createElement('div');
+        photoList.id = 'photoList';
+        photoList.style.maxHeight = '200px';
+        photoList.style.overflowY = 'auto';
+        photoList.style.border = '1px solid #ddd';
+        photoList.style.padding = '10px';
+        photoList.style.borderRadius = '4px';
+        
+        photoListContainer.appendChild(photoListTitle);
+        photoListContainer.appendChild(photoList);
         
         section.appendChild(title);
         section.appendChild(document.createTextNode(', '));
         section.appendChild(document.createTextNode(this.config.texts.uploadDescription));
         section.appendChild(document.createElement('br'));
-        section.appendChild(uploadArea);
+        section.appendChild(modeToggle);
+        section.appendChild(singleUploadArea);
+        section.appendChild(multiUploadArea);
+        section.appendChild(photoListContainer);
         
         return section;
     }
@@ -470,6 +558,11 @@ class UIGenerator {
                 uploadDescription: '选择你要处理的证件照片',
                 dragDropText: '拖拽照片到这里或点击选择文件',
                 selectFile: '选择文件',
+                multiPhotoMode: '多照片模式',
+                singlePhotoMode: '单照片模式',
+                addPhoto: '添加照片',
+                removePhoto: '删除',
+                photoCopies: '份数:',
                 
                 previewTitle: '将来的照片就是这个样子的：',
                 photoCountText: '照片数量:',
@@ -518,9 +611,14 @@ class UIGenerator {
                 customCount: 'Custom Photo Count:',
                 
                 uploadTitle: 'Step 5',
-                uploadDescription: 'Select your ID photo to process',
-                dragDropText: 'Drag and drop photo here or click to select file',
-                selectFile: 'Select File',
+                uploadDescription: 'Select your ID photo(s) to process',
+                dragDropText: 'Drag and drop photo(s) here or click to select file(s)',
+                selectFile: 'Select File(s)',
+                multiPhotoMode: 'Multi-Photo Mode',
+                singlePhotoMode: 'Single Photo Mode',
+                addPhoto: 'Add Photo',
+                removePhoto: 'Remove',
+                photoCopies: 'Copies:',
                 
                 previewTitle: 'Preview:',
                 photoCountText: 'Photo Count:',

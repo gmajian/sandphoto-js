@@ -1,7 +1,7 @@
 class SandPhoto {
     constructor() {
         this.CM_PER_INCH = 2.54;
-        this.DPI = 300;
+        this.DPI = 600;
         this.containerWidth = 0;
         this.containerHeight = 0;
         this.targetWidth = 0;
@@ -143,6 +143,108 @@ class SandPhoto {
         }
 
         return wn * hn;
+    }
+
+    // Process and place multiple photos on the canvas
+    putMultiplePhotos(photoDataArray, separatorColorId = "blue") {
+        if (!photoDataArray || photoDataArray.length === 0) {
+            return 0;
+        }
+
+        // Calculate total photos needed
+        const totalPhotos = photoDataArray.reduce((sum, photo) => sum + photo.copies, 0);
+        
+        if (totalPhotos === 0) {
+            return 0;
+        }
+
+        const GAP = 0; // No gap between photos
+
+        // Calculate optimal layout for total photos
+        let bestLayout = this.calculateOptimalLayout(totalPhotos, GAP);
+        
+        if (!bestLayout) {
+            // Fallback to maximum layout if total count is too high
+            return this.putPhoto(photoDataArray[0].image, separatorColorId);
+        }
+
+        // Create canvas with proper dimensions
+        this.containerWidth = bestLayout.containerWidth;
+        this.containerHeight = bestLayout.containerHeight;
+        this.createEmptyImage(separatorColorId);
+
+        // Calculate starting position to center the photos
+        const totalWidth = bestLayout.cols * (this.targetWidth + GAP) - GAP;
+        const totalHeight = bestLayout.rows * (this.targetHeight + GAP) - GAP;
+        const wStart = (this.containerWidth - totalWidth) / 2;
+        const hStart = (this.containerHeight - totalHeight) / 2;
+
+        // Determine border color
+        let borderColor = this.getBorderColor(separatorColorId);
+
+        // Place photos on canvas
+        let placedCount = 0;
+        let photoIndex = 0;
+        let currentPhotoCopies = 0;
+
+        for (let i = 0; i < bestLayout.cols && placedCount < totalPhotos; i++) {
+            const posX = wStart + (this.targetWidth + GAP) * i;
+            for (let j = 0; j < bestLayout.rows && placedCount < totalPhotos; j++) {
+                const posY = hStart + (this.targetHeight + GAP) * j;
+                
+                // Get current photo and its crop dimensions
+                if (currentPhotoCopies <= 0 && photoIndex < photoDataArray.length) {
+                    const photoData = photoDataArray[photoIndex];
+                    const img = photoData.image;
+                    const w = img.naturalWidth;
+                    const h = img.naturalHeight;
+
+                    // Calculate crop dimensions to fit target size
+                    const ratio1 = w / this.targetWidth;
+                    const ratio2 = h / this.targetHeight;
+                    let cutW, cutH, cutX, cutY;
+
+                    if (ratio1 > ratio2) {
+                        cutW = this.targetWidth * ratio2;
+                        cutH = h;
+                        cutX = (w - cutW) / 2;
+                        cutY = 0;
+                    } else {
+                        cutH = this.targetHeight * ratio1;
+                        cutW = w;
+                        cutY = (h - cutH) / 2;
+                        cutX = 0;
+                    }
+
+                    // Store crop info for this photo
+                    this.currentPhotoCrop = { cutX, cutY, cutW, cutH };
+                    currentPhotoCopies = photoData.copies;
+                    photoIndex++;
+                }
+
+                // Draw the current photo
+                if (this.currentPhotoCrop) {
+                    const img = photoDataArray[photoIndex - 1].image;
+                    this.ctx.drawImage(img, 
+                        this.currentPhotoCrop.cutX, this.currentPhotoCrop.cutY, 
+                        this.currentPhotoCrop.cutW, this.currentPhotoCrop.cutH,  // Source rectangle
+                        posX, posY, this.targetWidth, this.targetHeight  // Destination rectangle
+                    );
+                    
+                    // Draw 1px border around each photo
+                    this.ctx.save();
+                    this.ctx.strokeStyle = borderColor;
+                    this.ctx.lineWidth = 1;
+                    this.ctx.strokeRect(posX + 0.5, posY + 0.5, this.targetWidth - 1, this.targetHeight - 1);
+                    this.ctx.restore();
+                }
+
+                placedCount++;
+                currentPhotoCopies--;
+            }
+        }
+
+        return placedCount;
     }
 
     // Process and place photos on the canvas with specified count

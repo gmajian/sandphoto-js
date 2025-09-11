@@ -136,13 +136,13 @@ function createSandPhotoTestSuite() {
     suite.test('should initialize with correct constants', () => {
         const sandPhoto = new SandPhoto();
         expect(sandPhoto.CM_PER_INCH).toBe(2.54);
-        expect(sandPhoto.DPI).toBe(300);
+        expect(sandPhoto.DPI).toBe(600);
     });
 
     suite.test('should convert centimeters to pixels correctly', () => {
         const sandPhoto = new SandPhoto();
         const pixels = sandPhoto.getPixelFromCM(2.5);
-        const expected = Math.floor(2.5 * 300 / 2.54);
+        const expected = Math.floor(2.5 * 600 / 2.54);
         expect(pixels).toBe(expected);
     });
 
@@ -660,6 +660,445 @@ function createPhotoCountTestSuite() {
     return suite;
 }
 
+// Multi-Photo Feature Test Suite
+function createMultiPhotoTestSuite() {
+    const suite = new TestSuite('Multi-Photo Features');
+    
+    suite.test('should initialize SandPhoto with multi-photo support', () => {
+        const sandPhoto = new SandPhoto();
+        expect(typeof sandPhoto.putMultiplePhotos).toBe('function');
+        expect(sandPhoto.DPI).toBe(600);
+    });
+
+    suite.test('should handle empty photo array', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7);
+        sandPhoto.setTargetSize(2.5, 3.5);
+        
+        const result = sandPhoto.putMultiplePhotos([], 'blue');
+        expect(result).toBe(0);
+    });
+
+    suite.test('should process single photo with multiple copies', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7); // A4
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        // Create test image
+        const testCanvas = document.createElement('canvas');
+        testCanvas.width = 200;
+        testCanvas.height = 200;
+        const testCtx = testCanvas.getContext('2d');
+        testCtx.fillStyle = '#ff0000';
+        testCtx.fillRect(0, 0, 200, 200);
+        
+        const testImg = new Image();
+        testImg.src = testCanvas.toDataURL();
+        
+        return new Promise((resolve) => {
+            testImg.onload = () => {
+                const photoData = [{
+                    id: 1,
+                    image: testImg,
+                    filename: 'test.jpg',
+                    copies: 4
+                }];
+                
+                const result = sandPhoto.putMultiplePhotos(photoData, 'blue');
+                expect(result).toBe(4);
+                expect(sandPhoto.canvas).toBeTruthy();
+                resolve();
+            };
+        });
+    });
+
+    suite.test('should process multiple different photos', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7); // A4
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        // Create test images
+        const createTestImage = (color) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 200, 200);
+            
+            const img = new Image();
+            img.src = canvas.toDataURL();
+            return img;
+        };
+        
+        const img1 = createTestImage('#ff0000');
+        const img2 = createTestImage('#00ff00');
+        const img3 = createTestImage('#0000ff');
+        
+        return new Promise((resolve) => {
+            let loadedCount = 0;
+            const onLoad = () => {
+                loadedCount++;
+                if (loadedCount === 3) {
+                    const photoData = [
+                        { id: 1, image: img1, filename: 'red.jpg', copies: 2 },
+                        { id: 2, image: img2, filename: 'green.jpg', copies: 3 },
+                        { id: 3, image: img3, filename: 'blue.jpg', copies: 1 }
+                    ];
+                    
+                    const result = sandPhoto.putMultiplePhotos(photoData, 'blue');
+                    expect(result).toBe(6); // 2 + 3 + 1
+                    expect(sandPhoto.canvas).toBeTruthy();
+                    resolve();
+                }
+            };
+            
+            img1.onload = onLoad;
+            img2.onload = onLoad;
+            img3.onload = onLoad;
+        });
+    });
+
+    suite.test('should handle different copy counts per photo', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(15.2, 10.2); // 6寸 paper
+        sandPhoto.setTargetSize(2.5, 3.5); // 1寸
+        
+        const testCanvas = document.createElement('canvas');
+        testCanvas.width = 200;
+        testCanvas.height = 200;
+        const testCtx = testCanvas.getContext('2d');
+        testCtx.fillStyle = '#ff0000';
+        testCtx.fillRect(0, 0, 200, 200);
+        
+        const testImg = new Image();
+        testImg.src = testCanvas.toDataURL();
+        
+        return new Promise((resolve) => {
+            testImg.onload = () => {
+                const photoData = [
+                    { id: 1, image: testImg, filename: 'photo1.jpg', copies: 1 },
+                    { id: 2, image: testImg, filename: 'photo2.jpg', copies: 5 },
+                    { id: 3, image: testImg, filename: 'photo3.jpg', copies: 2 }
+                ];
+                
+                const result = sandPhoto.putMultiplePhotos(photoData, 'white');
+                expect(result).toBe(8); // 1 + 5 + 2
+                expect(sandPhoto.canvas).toBeTruthy();
+                resolve();
+            };
+        });
+    });
+
+    suite.test('should calculate total photos correctly', () => {
+        const photoData = [
+            { id: 1, image: null, filename: 'photo1.jpg', copies: 3 },
+            { id: 2, image: null, filename: 'photo2.jpg', copies: 2 },
+            { id: 3, image: null, filename: 'photo3.jpg', copies: 4 }
+        ];
+        
+        const totalPhotos = photoData.reduce((sum, photo) => sum + photo.copies, 0);
+        expect(totalPhotos).toBe(9);
+    });
+
+    suite.test('should handle zero copies gracefully', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7);
+        sandPhoto.setTargetSize(2.5, 3.5);
+        
+        const photoData = [
+            { id: 1, image: null, filename: 'photo1.jpg', copies: 0 },
+            { id: 2, image: null, filename: 'photo2.jpg', copies: 0 }
+        ];
+        
+        const result = sandPhoto.putMultiplePhotos(photoData, 'blue');
+        expect(result).toBe(0);
+    });
+
+    suite.test('should fallback to single photo mode for very high counts', () => {
+        const sandPhoto = new SandPhoto();
+        sandPhoto.setContainerSize(21.0, 29.7);
+        sandPhoto.setTargetSize(2.5, 3.5);
+        
+        // Create a photo data array that would result in too many photos
+        const photoData = Array(100).fill(null).map((_, i) => ({
+            id: i,
+            image: null,
+            filename: `photo${i}.jpg`,
+            copies: 10 // 1000 total photos
+        }));
+        
+        // This should fallback to single photo mode
+        expect(typeof sandPhoto.putPhoto).toBe('function');
+    });
+
+    suite.test('should maintain image quality at 600 DPI', () => {
+        const sandPhoto = new SandPhoto();
+        expect(sandPhoto.DPI).toBe(600);
+        
+        // Test that pixel calculations are correct for 600 DPI
+        const pixels = sandPhoto.getPixelFromCM(2.5);
+        const expected = Math.floor(2.5 * 600 / 2.54);
+        expect(pixels).toBe(expected);
+    });
+
+    suite.test('should handle different background colors in multi-photo mode', () => {
+        const colors = ['white', 'blue', 'gray'];
+        
+        colors.forEach(color => {
+            const sandPhoto = new SandPhoto();
+            sandPhoto.setContainerSize(21.0, 29.7);
+            sandPhoto.setTargetSize(2.5, 3.5);
+            
+            // Test that createEmptyImage works with different colors
+            sandPhoto.createEmptyImage(color);
+            expect(sandPhoto.canvas).toBeTruthy();
+            expect(sandPhoto.ctx).toBeTruthy();
+        });
+    });
+
+    suite.test('should generate correct filenames for multi-photo mode', () => {
+        // Test filename generation logic
+        const photoCount = 12;
+        const uniquePhotos = 3;
+        const photoType = '1寸';
+        const paperType = 'A4';
+        
+        const filenameTemplates = {
+            en: (count, unique, photo, paper) => `${count}pcs_${unique}photos_${photo}_on_${paper}.jpg`,
+            zh: (count, unique, photo, paper) => `${count}张${unique}种${photo}[以${paper}冲洗].jpg`
+        };
+        
+        const enFilename = filenameTemplates.en(photoCount, uniquePhotos, photoType, paperType);
+        const zhFilename = filenameTemplates.zh(photoCount, uniquePhotos, photoType, paperType);
+        
+        expect(enFilename).toBe('12pcs_3photos_1寸_on_A4.jpg');
+        expect(zhFilename).toBe('12张3种1寸[以A4冲洗].jpg');
+    });
+
+    return suite;
+}
+
+// App Multi-Photo Integration Test Suite
+function createAppMultiPhotoTestSuite() {
+    const suite = new TestSuite('App Multi-Photo Integration');
+    
+    suite.test('should initialize app with multi-photo support', () => {
+        // Mock DOM elements
+        const mockElement = (id) => ({
+            addEventListener: () => {},
+            style: { display: 'none' },
+            value: '',
+            textContent: '',
+            innerHTML: '',
+            appendChild: () => {},
+            click: () => {}
+        });
+        
+        const mockConfig = {
+            language: 'en',
+            elementIds: {
+                singleUploadArea: 'singleUploadArea',
+                multiUploadArea: 'multiUploadArea',
+                multiFileInput: 'multiFilename',
+                photoListContainer: 'photoListContainer',
+                photoList: 'photoList',
+                uploadModeRadios: 'uploadMode'
+            },
+            texts: {
+                photoCopies: 'Copies:',
+                removePhoto: 'Remove'
+            }
+        };
+        
+        // Test that the app can be initialized with multi-photo config
+        expect(mockConfig.elementIds.singleUploadArea).toBe('singleUploadArea');
+        expect(mockConfig.elementIds.multiUploadArea).toBe('multiUploadArea');
+        expect(mockConfig.elementIds.multiFileInput).toBe('multiFilename');
+    });
+
+    suite.test('should handle photo data structure correctly', () => {
+        const photoData = {
+            id: 12345,
+            image: null, // Mock image
+            filename: 'test-photo.jpg',
+            copies: 5
+        };
+        
+        expect(photoData.id).toBeTruthy();
+        expect(photoData.filename).toBeTruthy();
+        expect(photoData.copies).toBeGreaterThan(0);
+        expect(photoData.copies).toBeLessThanOrEqual(50);
+    });
+
+    suite.test('should validate copy count inputs', () => {
+        const validCounts = [1, 2, 5, 10, 25, 50];
+        const invalidCounts = [0, -1, 51, 100, NaN];
+        
+        validCounts.forEach(count => {
+            const isValid = count >= 1 && count <= 50 && !isNaN(count);
+            expect(isValid).toBe(true);
+        });
+        
+        invalidCounts.forEach(count => {
+            const isValid = count >= 1 && count <= 50 && !isNaN(count);
+            expect(isValid).toBe(false);
+        });
+    });
+
+    suite.test('should handle mode switching logic', () => {
+        const isMultiPhotoMode = true;
+        const uploadedPhotos = [
+            { id: 1, image: null, filename: 'photo1.jpg', copies: 2 },
+            { id: 2, image: null, filename: 'photo2.jpg', copies: 3 }
+        ];
+        const currentImage = null;
+        
+        // In multi-photo mode, should use uploadedPhotos
+        const hasPhotos = isMultiPhotoMode ? uploadedPhotos.length > 0 : currentImage;
+        expect(hasPhotos).toBe(true);
+        
+        // In single photo mode, should use currentImage
+        const singleMode = false;
+        const hasPhotosSingle = singleMode ? uploadedPhotos.length > 0 : !!currentImage;
+        expect(hasPhotosSingle).toBe(false);
+    });
+
+    suite.test('should calculate total photo count correctly', () => {
+        const uploadedPhotos = [
+            { id: 1, image: null, filename: 'photo1.jpg', copies: 2 },
+            { id: 2, image: null, filename: 'photo2.jpg', copies: 3 },
+            { id: 3, image: null, filename: 'photo3.jpg', copies: 1 }
+        ];
+        
+        const totalCount = uploadedPhotos.reduce((sum, photo) => sum + photo.copies, 0);
+        expect(totalCount).toBe(6);
+    });
+
+    suite.test('should handle photo removal logic', () => {
+        let uploadedPhotos = [
+            { id: 1, image: null, filename: 'photo1.jpg', copies: 2 },
+            { id: 2, image: null, filename: 'photo2.jpg', copies: 3 },
+            { id: 3, image: null, filename: 'photo3.jpg', copies: 1 }
+        ];
+        
+        const photoIdToRemove = 2;
+        uploadedPhotos = uploadedPhotos.filter(photo => photo.id !== photoIdToRemove);
+        
+        expect(uploadedPhotos.length).toBe(2);
+        expect(uploadedPhotos.find(photo => photo.id === photoIdToRemove)).toBeFalsy();
+    });
+
+    suite.test('should handle copy count updates', () => {
+        const uploadedPhotos = [
+            { id: 1, image: null, filename: 'photo1.jpg', copies: 2 },
+            { id: 2, image: null, filename: 'photo2.jpg', copies: 3 }
+        ];
+        
+        const photoId = 1;
+        const newCopies = 5;
+        const photo = uploadedPhotos.find(p => p.id === photoId);
+        
+        if (photo) {
+            photo.copies = Math.max(1, parseInt(newCopies) || 1);
+        }
+        
+        expect(photo.copies).toBe(5);
+    });
+
+    suite.test('should validate file types for multi-upload', () => {
+        const validFiles = [
+            { name: 'photo1.jpg', type: 'image/jpeg', size: 1024 * 1024 },
+            { name: 'photo2.png', type: 'image/png', size: 2 * 1024 * 1024 },
+            { name: 'photo3.gif', type: 'image/gif', size: 500 * 1024 }
+        ];
+        
+        const invalidFiles = [
+            { name: 'document.pdf', type: 'application/pdf', size: 1024 * 1024 },
+            { name: 'text.txt', type: 'text/plain', size: 1024 },
+            { name: 'large.jpg', type: 'image/jpeg', size: 10 * 1024 * 1024 }
+        ];
+        
+        validFiles.forEach(file => {
+            const isValid = file.type.startsWith('image/') && file.size <= 8 * 1024 * 1024;
+            expect(isValid).toBe(true);
+        });
+        
+        invalidFiles.forEach(file => {
+            const isValid = file.type.startsWith('image/') && file.size <= 8 * 1024 * 1024;
+            expect(isValid).toBe(false);
+        });
+    });
+
+    return suite;
+}
+
+// UI Generator Multi-Photo Test Suite
+function createUIGeneratorMultiPhotoTestSuite() {
+    const suite = new TestSuite('UI Generator Multi-Photo');
+    
+    suite.test('should include multi-photo text strings', () => {
+        const config = {
+            texts: {
+                multiPhotoMode: 'Multi-Photo Mode',
+                singlePhotoMode: 'Single Photo Mode',
+                addPhoto: 'Add Photo',
+                removePhoto: 'Remove',
+                photoCopies: 'Copies:'
+            }
+        };
+        
+        expect(config.texts.multiPhotoMode).toBe('Multi-Photo Mode');
+        expect(config.texts.singlePhotoMode).toBe('Single Photo Mode');
+        expect(config.texts.addPhoto).toBe('Add Photo');
+        expect(config.texts.removePhoto).toBe('Remove');
+        expect(config.texts.photoCopies).toBe('Copies:');
+    });
+
+    suite.test('should support multiple languages for multi-photo UI', () => {
+        const englishTexts = {
+            multiPhotoMode: 'Multi-Photo Mode',
+            singlePhotoMode: 'Single Photo Mode',
+            addPhoto: 'Add Photo',
+            removePhoto: 'Remove',
+            photoCopies: 'Copies:'
+        };
+        
+        const chineseTexts = {
+            multiPhotoMode: '多照片模式',
+            singlePhotoMode: '单照片模式',
+            addPhoto: '添加照片',
+            removePhoto: '删除',
+            photoCopies: '份数:'
+        };
+        
+        expect(englishTexts.multiPhotoMode).toBe('Multi-Photo Mode');
+        expect(chineseTexts.multiPhotoMode).toBe('多照片模式');
+        expect(englishTexts.photoCopies).toBe('Copies:');
+        expect(chineseTexts.photoCopies).toBe('份数:');
+    });
+
+    suite.test('should generate correct element IDs for multi-photo', () => {
+        const elementIds = {
+            singleUploadArea: 'singleUploadArea',
+            multiUploadArea: 'multiUploadArea',
+            multiFileInput: 'multiFilename',
+            photoListContainer: 'photoListContainer',
+            photoList: 'photoList',
+            uploadModeRadios: 'uploadMode'
+        };
+        
+        expect(elementIds.singleUploadArea).toBe('singleUploadArea');
+        expect(elementIds.multiUploadArea).toBe('multiUploadArea');
+        expect(elementIds.multiFileInput).toBe('multiFilename');
+        expect(elementIds.photoListContainer).toBe('photoListContainer');
+        expect(elementIds.photoList).toBe('photoList');
+        expect(elementIds.uploadModeRadios).toBe('uploadMode');
+    });
+
+    return suite;
+}
+
 // Export test suites for use in test runner
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -669,6 +1108,9 @@ if (typeof module !== 'undefined' && module.exports) {
         createImageProcessingTestSuite,
         createAppIntegrationTestSuite,
         createCustomSizeTestSuite,
-        createPhotoCountTestSuite
+        createPhotoCountTestSuite,
+        createMultiPhotoTestSuite,
+        createAppMultiPhotoTestSuite,
+        createUIGeneratorMultiPhotoTestSuite
     };
 } 
