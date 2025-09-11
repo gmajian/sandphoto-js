@@ -164,8 +164,31 @@ class SandPhoto {
         let bestLayout = this.calculateOptimalLayout(totalPhotos, GAP);
         
         if (!bestLayout) {
-            // Fallback to maximum layout if total count is too high
-            return this.putPhoto(photoDataArray[0].image, separatorColorId);
+            // Fallback: calculate maximum possible photos and fit as many as possible
+            const maxCols = Math.floor(this.containerWidth / (this.targetWidth + GAP));
+            const maxRows = Math.floor(this.containerHeight / (this.targetHeight + GAP));
+            const maxPhotos = maxCols * maxRows;
+            
+            // Try rotated layout
+            const maxColsRotated = Math.floor(this.containerHeight / (this.targetWidth + GAP));
+            const maxRowsRotated = Math.floor(this.containerWidth / (this.targetHeight + GAP));
+            const maxPhotosRotated = maxColsRotated * maxRowsRotated;
+            
+            if (maxPhotosRotated > maxPhotos) {
+                bestLayout = {
+                    cols: maxColsRotated,
+                    rows: maxRowsRotated,
+                    containerWidth: this.containerHeight,
+                    containerHeight: this.containerWidth
+                };
+            } else {
+                bestLayout = {
+                    cols: maxCols,
+                    rows: maxRows,
+                    containerWidth: this.containerWidth,
+                    containerHeight: this.containerHeight
+                };
+            }
         }
 
         // Create canvas with proper dimensions
@@ -186,10 +209,11 @@ class SandPhoto {
         let placedCount = 0;
         let photoIndex = 0;
         let currentPhotoCopies = 0;
+        const maxSlots = bestLayout.cols * bestLayout.rows;
 
-        for (let i = 0; i < bestLayout.cols && placedCount < totalPhotos; i++) {
+        for (let i = 0; i < bestLayout.cols && placedCount < Math.min(totalPhotos, maxSlots); i++) {
             const posX = wStart + (this.targetWidth + GAP) * i;
-            for (let j = 0; j < bestLayout.rows && placedCount < totalPhotos; j++) {
+            for (let j = 0; j < bestLayout.rows && placedCount < Math.min(totalPhotos, maxSlots); j++) {
                 const posY = hStart + (this.targetHeight + GAP) * j;
                 
                 // Get current photo and its crop dimensions
