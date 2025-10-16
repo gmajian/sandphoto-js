@@ -8,6 +8,8 @@ class SandPhoto {
         this.targetHeight = 0;
         this.canvas = null;
         this.ctx = null;
+        this.gapPx = 5; // default gap between photos in pixels
+        this.lastLayout = null; // stores positions for preview rendering
     }
 
     // Convert centimeters to pixels
@@ -25,6 +27,16 @@ class SandPhoto {
     setTargetSize(width, height) {
         this.targetWidth = this.getPixelFromCM(width);
         this.targetHeight = this.getPixelFromCM(height);
+    }
+
+    // Set gap between photos in pixels
+    setGapPixels(pixels) {
+        this.gapPx = Math.max(0, Math.floor(pixels));
+    }
+
+    // Set gap between photos in centimeters
+    setGapCM(cm) {
+        this.gapPx = Math.max(0, this.getPixelFromCM(cm));
     }
 
     // Create empty canvas with background color
@@ -87,7 +99,7 @@ class SandPhoto {
             cutX = 0;
         }
 
-        const GAP = 0; // No gap between photos
+        const GAP = this.gapPx;
 
         // Calculate how many photos can fit
         let wn = Math.floor(this.containerWidth / (this.targetWidth + GAP));
@@ -124,23 +136,46 @@ class SandPhoto {
         // Determine border color
         let borderColor = this.getBorderColor(separatorColorId);
 
+        // Prepare layout capture
+        const items = [];
+
         // Place photos on canvas
         for (let i = 0; i < wn; i++) {
             const posX = wStart + (this.targetWidth + GAP) * i;
             for (let j = 0; j < hn; j++) {
                 const posY = hStart + (this.targetHeight + GAP) * j;
-                this.ctx.drawImage(img, 
+                const dx = Math.round(posX);
+                const dy = Math.round(posY);
+                this.ctx.drawImage(img,
                     cutX, cutY, cutW, cutH,  // Source rectangle
-                    posX, posY, this.targetWidth, this.targetHeight  // Destination rectangle
+                    dx, dy, this.targetWidth, this.targetHeight  // Destination rectangle
                 );
                 // Draw 1px border around each photo
                 this.ctx.save();
                 this.ctx.strokeStyle = borderColor;
                 this.ctx.lineWidth = 1;
-                this.ctx.strokeRect(posX + 0.5, posY + 0.5, this.targetWidth - 1, this.targetHeight - 1);
+                this.ctx.strokeRect(dx + 0.5, dy + 0.5, this.targetWidth - 1, this.targetHeight - 1);
                 this.ctx.restore();
+
+                // Capture layout item
+                items.push({
+                    x: dx,
+                    y: dy,
+                    w: this.targetWidth,
+                    h: this.targetHeight,
+                    img: img,
+                    crop: { sx: cutX, sy: cutY, sw: cutW, sh: cutH }
+                });
             }
         }
+
+        // Save layout for preview rendering
+        this.lastLayout = {
+            containerWidth: this.containerWidth,
+            containerHeight: this.containerHeight,
+            items: items,
+            borderColor: borderColor
+        };
 
         return wn * hn;
     }
@@ -158,7 +193,7 @@ class SandPhoto {
             return 0;
         }
 
-        const GAP = 0; // No gap between photos
+        const GAP = this.gapPx;
 
         // Calculate optimal layout for total photos
         let bestLayout = this.calculateOptimalLayout(totalPhotos, GAP);
@@ -205,6 +240,9 @@ class SandPhoto {
         // Determine border color
         let borderColor = this.getBorderColor(separatorColorId);
 
+        // Prepare layout capture
+        const items = [];
+
         // Place photos on canvas
         let placedCount = 0;
         let photoIndex = 0;
@@ -215,6 +253,8 @@ class SandPhoto {
             const posX = wStart + (this.targetWidth + GAP) * i;
             for (let j = 0; j < bestLayout.rows && placedCount < Math.min(totalPhotos, maxSlots); j++) {
                 const posY = hStart + (this.targetHeight + GAP) * j;
+                const dx = Math.round(posX);
+                const dy = Math.round(posY);
                 
                 // Get current photo and its crop dimensions
                 if (currentPhotoCopies <= 0 && photoIndex < photoDataArray.length) {
@@ -252,21 +292,44 @@ class SandPhoto {
                     this.ctx.drawImage(img, 
                         this.currentPhotoCrop.cutX, this.currentPhotoCrop.cutY, 
                         this.currentPhotoCrop.cutW, this.currentPhotoCrop.cutH,  // Source rectangle
-                        posX, posY, this.targetWidth, this.targetHeight  // Destination rectangle
+                        dx, dy, this.targetWidth, this.targetHeight  // Destination rectangle
                     );
                     
                     // Draw 1px border around each photo
                     this.ctx.save();
                     this.ctx.strokeStyle = borderColor;
                     this.ctx.lineWidth = 1;
-                    this.ctx.strokeRect(posX + 0.5, posY + 0.5, this.targetWidth - 1, this.targetHeight - 1);
+                    this.ctx.strokeRect(dx + 0.5, dy + 0.5, this.targetWidth - 1, this.targetHeight - 1);
                     this.ctx.restore();
+
+                    // Capture layout item
+                    items.push({
+                        x: dx,
+                        y: dy,
+                        w: this.targetWidth,
+                        h: this.targetHeight,
+                        img: img,
+                        crop: {
+                            sx: this.currentPhotoCrop.cutX,
+                            sy: this.currentPhotoCrop.cutY,
+                            sw: this.currentPhotoCrop.cutW,
+                            sh: this.currentPhotoCrop.cutH
+                        }
+                    });
                 }
 
                 placedCount++;
                 currentPhotoCopies--;
             }
         }
+
+        // Save layout for preview rendering
+        this.lastLayout = {
+            containerWidth: this.containerWidth,
+            containerHeight: this.containerHeight,
+            items: items,
+            borderColor: borderColor
+        };
 
         return placedCount;
     }
@@ -294,7 +357,7 @@ class SandPhoto {
             cutX = 0;
         }
 
-        const GAP = 0; // No gap between photos
+        const GAP = this.gapPx;
 
         // Calculate optimal layout for the target count
         let bestLayout = this.calculateOptimalLayout(targetCount, GAP);
@@ -318,25 +381,47 @@ class SandPhoto {
         // Determine border color
         let borderColor = this.getBorderColor(separatorColorId);
 
+        // Prepare layout capture
+        const items = [];
+
         // Place photos on canvas up to the target count
         let placedCount = 0;
         for (let i = 0; i < bestLayout.cols && placedCount < targetCount; i++) {
             const posX = wStart + (this.targetWidth + GAP) * i;
             for (let j = 0; j < bestLayout.rows && placedCount < targetCount; j++) {
                 const posY = hStart + (this.targetHeight + GAP) * j;
-                this.ctx.drawImage(img, 
+                const dx = Math.round(posX);
+                const dy = Math.round(posY);
+                this.ctx.drawImage(img,
                     cutX, cutY, cutW, cutH,  // Source rectangle
-                    posX, posY, this.targetWidth, this.targetHeight  // Destination rectangle
+                    dx, dy, this.targetWidth, this.targetHeight  // Destination rectangle
                 );
                 // Draw 1px border around each photo
                 this.ctx.save();
                 this.ctx.strokeStyle = borderColor;
                 this.ctx.lineWidth = 1;
-                this.ctx.strokeRect(posX + 0.5, posY + 0.5, this.targetWidth - 1, this.targetHeight - 1);
+                this.ctx.strokeRect(dx + 0.5, dy + 0.5, this.targetWidth - 1, this.targetHeight - 1);
                 this.ctx.restore();
+                // Capture layout item
+                items.push({
+                    x: dx,
+                    y: dy,
+                    w: this.targetWidth,
+                    h: this.targetHeight,
+                    img: img,
+                    crop: { sx: cutX, sy: cutY, sw: cutW, sh: cutH }
+                });
                 placedCount++;
             }
         }
+
+        // Save layout for preview rendering
+        this.lastLayout = {
+            containerWidth: this.containerWidth,
+            containerHeight: this.containerHeight,
+            items: items,
+            borderColor: borderColor
+        };
 
         return placedCount;
     }
@@ -403,20 +488,55 @@ class SandPhoto {
         const previewCanvas = document.createElement('canvas');
         const previewCtx = previewCanvas.getContext('2d');
 
+        // If we have layout info, render preview from layout to preserve 1px lines
+        if (this.lastLayout && this.lastLayout.items && this.lastLayout.items.length > 0) {
+            const cw = this.lastLayout.containerWidth;
+            const ch = this.lastLayout.containerHeight;
+            const scale = Math.min(maxWidth / cw, maxHeight / ch, 1);
+            const pw = Math.max(1, Math.floor(cw * scale));
+            const ph = Math.max(1, Math.floor(ch * scale));
+            previewCanvas.width = pw;
+            previewCanvas.height = ph;
+
+            // background
+            previewCtx.fillStyle = '#FFFFFF';
+            previewCtx.fillRect(0, 0, pw, ph);
+
+            // draw items
+            previewCtx.imageSmoothingEnabled = false;
+            const borderColor = this.lastLayout.borderColor || '#000078';
+            for (const it of this.lastLayout.items) {
+                const dx = Math.round(it.x * scale);
+                const dy = Math.round(it.y * scale);
+                const dw = Math.max(1, Math.floor(it.w * scale));
+                const dh = Math.max(1, Math.floor(it.h * scale));
+                previewCtx.drawImage(
+                    it.img,
+                    it.crop.sx, it.crop.sy, it.crop.sw, it.crop.sh,
+                    dx, dy, dw, dh
+                );
+                previewCtx.save();
+                previewCtx.strokeStyle = borderColor;
+                previewCtx.lineWidth = 1;
+                previewCtx.strokeRect(dx + 0.5, dy + 0.5, dw - 1, dh - 1);
+                previewCtx.restore();
+            }
+
+            return previewCanvas;
+        }
+
+        // Fallback: scale the full canvas
         // Calculate scale to fit within max dimensions
         const ratio1 = this.containerWidth / maxWidth;
         const ratio2 = this.containerHeight / maxHeight;
-        const ratio = Math.max(ratio1, ratio2);
-        
-        const w = Math.floor(this.containerWidth / ratio);
-        const h = Math.floor(this.containerHeight / ratio);
-
-        previewCanvas.width = w;
-        previewCanvas.height = h;
-
-        // Draw scaled version
-        previewCtx.drawImage(this.canvas, 0, 0, w, h);
-
+        const rawRatio = Math.max(ratio1, ratio2);
+        let ratio = rawRatio >= 1 ? Math.ceil(rawRatio) : 1;
+        const finalW = Math.max(1, Math.floor(this.containerWidth / ratio));
+        const finalH = Math.max(1, Math.floor(this.containerHeight / ratio));
+        previewCanvas.width = finalW;
+        previewCanvas.height = finalH;
+        previewCtx.imageSmoothingEnabled = false;
+        previewCtx.drawImage(this.canvas, 0, 0, finalW, finalH);
         return previewCanvas;
     }
 

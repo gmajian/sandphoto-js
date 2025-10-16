@@ -1391,6 +1391,105 @@ function createUIGeneratorMultiPhotoTestSuite() {
     return suite;
 }
 
+// Gap Feature Test Suite
+function createGapFeatureTestSuite() {
+    const suite = new TestSuite('Gap Feature');
+
+    suite.test('should expose gap setters', () => {
+        const sandPhoto = new SandPhoto();
+        expect(typeof sandPhoto.setGapPixels).toBe('function');
+        expect(typeof sandPhoto.setGapCM).toBe('function');
+    });
+
+    suite.test('should convert gap from cm to pixels', () => {
+        const sandPhoto = new SandPhoto();
+        const cm = 0.2; // 2mm
+        const expectedPx = sandPhoto.getPixelFromCM(cm);
+        sandPhoto.setGapCM(cm);
+        expect(sandPhoto.gapPx).toBe(expectedPx);
+    });
+
+    suite.test('should reduce capacity when gap increases (calc only)', () => {
+        const sp = new SandPhoto();
+        sp.setContainerSize(15.2, 10.2); // 6寸
+        sp.setTargetSize(2.5, 3.5); // 1寸
+
+        const cw = sp.containerWidth;
+        const ch = sp.containerHeight;
+        const tw = sp.targetWidth;
+        const th = sp.targetHeight;
+
+        const capWithGap = (gap) => {
+            const n1 = Math.floor(cw / (tw + gap)) * Math.floor(ch / (th + gap));
+            const n2 = Math.floor(ch / (tw + gap)) * Math.floor(cw / (th + gap));
+            return Math.max(n1, n2);
+        };
+
+        const cap0 = capWithGap(0);
+        const cap10 = capWithGap(10);
+        expect(cap0).toBeGreaterThanOrEqual(cap10);
+    });
+
+    suite.test('should respect gap in placed photo count', async () => {
+        const makeImg = () => {
+            const c = document.createElement('canvas');
+            c.width = 200; c.height = 200;
+            const x = c.getContext('2d');
+            x.fillStyle = '#f00';
+            x.fillRect(0,0,200,200);
+            const img = new Image();
+            img.src = c.toDataURL();
+            return img;
+        };
+
+        const img = makeImg();
+
+        const runWithGap = (gapPx) => new Promise((resolve) => {
+            const sp = new SandPhoto();
+            sp.setContainerSize(15.2, 10.2);
+            sp.setTargetSize(2.5, 3.5);
+            sp.setGapPixels(gapPx);
+            const onload = () => {
+                const count = sp.putPhoto(img, 'blue');
+                resolve({ count, sp });
+            };
+            if (img.complete) setTimeout(onload, 0); else img.onload = onload;
+        });
+
+        const res0 = await runWithGap(0);
+        const res10 = await runWithGap(10);
+        expect(res0.count).toBeGreaterThanOrEqual(res10.count);
+    });
+
+    suite.test('should populate lastLayout and generate preview', async () => {
+        const c = document.createElement('canvas');
+        c.width = 200; c.height = 200;
+        const x = c.getContext('2d');
+        x.fillStyle = '#0f0'; x.fillRect(0,0,200,200);
+        const img = new Image();
+        img.src = c.toDataURL();
+
+        return new Promise((resolve) => {
+            img.onload = () => {
+                const sp = new SandPhoto();
+                sp.setContainerSize(15.2, 10.2);
+                sp.setTargetSize(2.5, 3.5);
+                sp.setGapPixels(8);
+                const n = sp.putPhoto(img, 'blue');
+                expect(n).toBeGreaterThan(0);
+                expect(!!sp.lastLayout && sp.lastLayout.items.length > 0).toBeTruthy();
+                const prev = sp.getPreviewCanvas(800, 600);
+                expect(prev).toBeTruthy();
+                expect(prev.width).toBeLessThanOrEqual(800);
+                expect(prev.height).toBeLessThanOrEqual(600);
+                resolve();
+            };
+        });
+    });
+
+    return suite;
+}
+
 // Export test suites for use in test runner
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -1403,6 +1502,7 @@ if (typeof module !== 'undefined' && module.exports) {
         createPhotoCountTestSuite,
         createMultiPhotoTestSuite,
         createAppMultiPhotoTestSuite,
-        createUIGeneratorMultiPhotoTestSuite
+        createUIGeneratorMultiPhotoTestSuite,
+        createGapFeatureTestSuite
     };
 } 

@@ -19,6 +19,7 @@ class SandPhotoApp {
                 photoCountSelect: 'photoCountSelect',
                 customCountGroup: 'customCountGroup',
                 customPhotoCountInput: 'customPhotoCount',
+                gapInputMm: 'gapMm',
                 // Multi-photo elements
                 singleUploadArea: 'singleUploadArea',
                 multiUploadArea: 'multiUploadArea',
@@ -70,6 +71,7 @@ class SandPhotoApp {
         this.photoCountSelect = document.getElementById(this.config.elementIds.photoCountSelect);
         this.customCountGroup = document.getElementById(this.config.elementIds.customCountGroup);
         this.customPhotoCountInput = document.getElementById(this.config.elementIds.customPhotoCountInput);
+        this.gapInputMm = document.getElementById(this.config.elementIds.gapInputMm);
         
         // Multi-photo elements
         this.singleUploadArea = document.getElementById(this.config.elementIds.singleUploadArea);
@@ -177,6 +179,9 @@ class SandPhotoApp {
         }
         if (this.customPhotoCountInput) {
             this.customPhotoCountInput.addEventListener('input', () => this.updatePreview());
+        }
+        if (this.gapInputMm) {
+            this.gapInputMm.addEventListener('input', () => this.updatePreview());
         }
 
         // Download button
@@ -624,6 +629,12 @@ class SandPhotoApp {
             this.sandPhoto = new SandPhoto();
             this.sandPhoto.setContainerSize(containerType.width, containerType.height);
             this.sandPhoto.setTargetSize(targetType.width, targetType.height);
+            // Set gap from UI (mm to cm conversion)
+            if (this.gapInputMm && this.gapInputMm.value !== '') {
+                const gapMm = Math.max(0, parseFloat(this.gapInputMm.value) || 0);
+                const gapCm = gapMm / 10;
+                this.sandPhoto.setGapCM(gapCm);
+            }
 
             let photoCount;
 
@@ -656,6 +667,7 @@ class SandPhotoApp {
                     this.previewCanvas.height = previewCanvas.height;
                     
                     // Draw preview
+                    previewCtx.imageSmoothingEnabled = false;
                     previewCtx.drawImage(previewCanvas, 0, 0);
                 } else {
                     // Handle img element

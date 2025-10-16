@@ -87,12 +87,17 @@
             <h3>🎨 UI Generator Multi-Photo Test Suite <span class="status">Pending</span></h3>
             <div class="test-results"></div>
         </div>
+        
+        <div class="test-suite" id="gapFeatureSuite">
+            <h3>🧵 Gap Feature Test Suite <span class="status">Pending</span></h3>
+            <div class="test-results"></div>
+        </div>
     </div>
 
     <script src="phototypes.js"></script>
     <script src="sandphoto.js"></script>
     <script src="app.js"></script>
-    <script src="test-suite.js?v=2"></script>
+    <script src="test-suite.js?v=3"></script>
     <script>
         let totalTests = 0;
         let completedTests = 0;
@@ -202,7 +207,8 @@
                     { name: 'createPhotoCountTestSuite', func: createPhotoCountTestSuite },
                     { name: 'createMultiPhotoTestSuite', func: createMultiPhotoTestSuite },
                     { name: 'createAppMultiPhotoTestSuite', func: createAppMultiPhotoTestSuite },
-                    { name: 'createUIGeneratorMultiPhotoTestSuite', func: createUIGeneratorMultiPhotoTestSuite }
+                    { name: 'createUIGeneratorMultiPhotoTestSuite', func: createUIGeneratorMultiPhotoTestSuite },
+                    { name: 'createGapFeatureTestSuite', func: createGapFeatureTestSuite }
                 ];
                 
                 // Count total tests
@@ -222,6 +228,7 @@
                 await runTestSuite('multiPhotoSuite', createMultiPhotoTestSuite);
                 await runTestSuite('appMultiPhotoSuite', createAppMultiPhotoTestSuite);
                 await runTestSuite('uiGeneratorMultiPhotoSuite', createUIGeneratorMultiPhotoTestSuite);
+                await runTestSuite('gapFeatureSuite', createGapFeatureTestSuite);
                 
                 // Final summary
                 const successRate = (passedTests / totalTests * 100).toFixed(1);

@@ -45,6 +45,11 @@ class UIGenerator {
                 photoCountText: 'Photo Count:',
                 downloadText: 'Download',
                 
+                // Gap section
+                gapTitle: 'Gap Between Photos',
+                gapLabel: 'Gap (mm):',
+                gapDescription: 'Set space between photos for easier cutting',
+                
                 // Messages
                 selectImageFile: 'Please select an image file.',
                 fileSizeLimit: 'File size must be less than 8MB.',
@@ -73,6 +78,7 @@ class UIGenerator {
         container.appendChild(this.generatePhotoSizeSection());
         container.appendChild(this.generatePaperSizeSection());
         container.appendChild(this.generateBgColorSection());
+        container.appendChild(this.generateGapSection());
         container.appendChild(this.generatePhotoCountSection());
         container.appendChild(this.generateUploadSection());
         container.appendChild(this.generatePreviewSection());
@@ -102,6 +108,45 @@ class UIGenerator {
         section.appendChild(document.createElement('br'));
         section.appendChild(select);
         section.appendChild(customSection);
+        
+        return section;
+    }
+
+    // Generate gap (spacing) section
+    generateGapSection() {
+        const section = document.createElement('div');
+        section.className = 'form-step';
+        
+        const title = document.createElement('strong');
+        title.textContent = (this.config.texts.gapTitle || 'Gap Between Photos');
+        
+        const wrapper = document.createElement('div');
+        wrapper.style.marginTop = '8px';
+        
+        const label = document.createElement('label');
+        label.htmlFor = 'gapMm';
+        label.textContent = (this.config.texts.gapLabel || 'Gap (mm):');
+        label.style.marginRight = '8px';
+        
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = 'gapMm';
+        input.className = 'form-control';
+        input.min = '0';
+        input.max = '50';
+        input.step = '1';
+        input.placeholder = 'e.g., 5';
+        input.style.width = '120px';
+        input.value = '5';
+        
+        wrapper.appendChild(label);
+        wrapper.appendChild(input);
+        
+        section.appendChild(title);
+        section.appendChild(document.createTextNode(', '));
+        section.appendChild(document.createTextNode(this.config.texts.gapDescription || 'Set space between photos for easier cutting'));
+        section.appendChild(document.createElement('br'));
+        section.appendChild(wrapper);
         
         return section;
     }
@@ -548,13 +593,18 @@ class UIGenerator {
                 white: '白色',
                 gray: '灰色',
                 
-                photoCountTitle: '第四步',
+                // Gap section
+                gapTitle: '第四步',
+                gapLabel: '间距 (毫米):',
+                gapDescription: '设置照片之间的间距，方便裁剪',
+                
+                photoCountTitle: '第五步',
                 selectPhotoCount: '选择照片数量',
                 auto: '自动（最大数量）',
                 custom: '自定义数量',
                 customCount: '自定义照片数量:',
                 
-                uploadTitle: '第五步',
+                uploadTitle: '第六步',
                 uploadDescription: '选择你要处理的证件照片',
                 dragDropText: '拖拽照片到这里或点击选择文件',
                 selectFile: '选择文件',
@@ -604,13 +654,18 @@ class UIGenerator {
                 white: 'White',
                 gray: 'Gray',
                 
-                photoCountTitle: 'Step 4',
+                // Gap section
+                gapTitle: 'Step 4',
+                gapLabel: 'Gap (mm):',
+                gapDescription: 'Set space between photos for easier cutting',
+                
+                photoCountTitle: 'Step 5',
                 selectPhotoCount: 'Select Photo Count',
                 auto: 'Auto (Maximum)',
                 custom: 'Custom',
                 customCount: 'Custom Photo Count:',
                 
-                uploadTitle: 'Step 5',
+                uploadTitle: 'Step 6',
                 uploadDescription: 'Select your ID photo(s) to process',
                 dragDropText: 'Drag and drop photo(s) here or click to select file(s)',
                 selectFile: 'Select File(s)',
@@ -660,13 +715,18 @@ class UIGenerator {
                 white: 'Blanco',
                 gray: 'Gris',
                 
-                photoCountTitle: 'Paso 4',
+                // Gap section
+                gapTitle: 'Paso 4',
+                gapLabel: 'Espacio (mm):',
+                gapDescription: 'Ajusta el espacio entre fotos para facilitar el corte',
+                
+                photoCountTitle: 'Paso 5',
                 selectPhotoCount: 'Seleccionar Cantidad de Fotos',
                 auto: 'Automático (Máximo)',
                 custom: 'Personalizado',
                 customCount: 'Cantidad Personalizada de Fotos:',
                 
-                uploadTitle: 'Paso 5',
+                uploadTitle: 'Paso 6',
                 uploadDescription: 'Selecciona tu foto de identificación para procesar',
                 dragDropText: 'Arrastra y suelta la foto aquí o haz clic para seleccionar archivo',
                 selectFile: 'Seleccionar Archivo',
@@ -711,13 +771,18 @@ class UIGenerator {
                 white: 'Blanc',
                 gray: 'Gris',
                 
-                photoCountTitle: 'Étape 4',
+                // Gap section
+                gapTitle: 'Étape 4',
+                gapLabel: 'Espace (mm) :',
+                gapDescription: 'Définissez l’espace entre les photos pour faciliter la coupe',
+                
+                photoCountTitle: 'Étape 5',
                 selectPhotoCount: 'Sélectionner le Nombre de Photos',
                 auto: 'Automatique (Maximum)',
                 custom: 'Personnalisé',
                 customCount: 'Nombre Personnalisé de Photos:',
                 
-                uploadTitle: 'Étape 5',
+                uploadTitle: 'Étape 6',
                 uploadDescription: 'Sélectionnez votre photo d\'identité à traiter',
                 dragDropText: 'Glissez et déposez la photo ici ou cliquez pour sélectionner un fichier',
                 selectFile: 'Sélectionner un Fichier',
@@ -762,13 +827,18 @@ class UIGenerator {
                 white: 'Weiß',
                 gray: 'Grau',
                 
-                photoCountTitle: 'Schritt 4',
+                // Gap section
+                gapTitle: 'Schritt 4',
+                gapLabel: 'Abstand (mm):',
+                gapDescription: 'Abstand zwischen Fotos für leichteres Zuschneiden festlegen',
+                
+                photoCountTitle: 'Schritt 5',
                 selectPhotoCount: 'Anzahl der Fotos auswählen',
                 auto: 'Automatisch (Maximum)',
                 custom: 'Benutzerdefiniert',
                 customCount: 'Benutzerdefinierte Fotoanzahl:',
                 
-                uploadTitle: 'Schritt 5',
+                uploadTitle: 'Schritt 6',
                 uploadDescription: 'Wählen Sie Ihr Ausweisfoto zur Verarbeitung',
                 dragDropText: 'Foto hierher ziehen und ablegen oder klicken um Datei auszuwählen',
                 selectFile: 'Datei auswählen',
@@ -813,13 +883,18 @@ class UIGenerator {
                 white: '白',
                 gray: 'グレー',
                 
-                photoCountTitle: 'ステップ4',
+                // Gap section
+                gapTitle: 'ステップ4',
+                gapLabel: '間隔 (mm):',
+                gapDescription: '切り取りやすくするために写真間の間隔を設定',
+                
+                photoCountTitle: 'ステップ5',
                 selectPhotoCount: '写真枚数を選択',
                 auto: '自動（最大）',
                 custom: 'カスタム',
                 customCount: 'カスタム写真枚数:',
                 
-                uploadTitle: 'ステップ5',
+                uploadTitle: 'ステップ6',
                 uploadDescription: '処理する身分証明書写真を選択',
                 dragDropText: '写真をここにドラッグ＆ドロップするか、クリックしてファイルを選択',
                 selectFile: 'ファイルを選択',
@@ -864,13 +939,18 @@ class UIGenerator {
                 white: '흰색',
                 gray: '회색',
                 
-                photoCountTitle: '4단계',
+                // Gap section
+                gapTitle: '4단계',
+                gapLabel: '간격 (mm):',
+                gapDescription: '자르기 쉽도록 사진 간 간격을 설정하세요',
+                
+                photoCountTitle: '5단계',
                 selectPhotoCount: '사진 개수 선택',
                 auto: '자동 (최대)',
                 custom: '사용자 정의',
                 customCount: '사용자 정의 사진 개수:',
                 
-                uploadTitle: '5단계',
+                uploadTitle: '6단계',
                 uploadDescription: '처리할 신분증 사진을 선택하세요',
                 dragDropText: '사진을 여기에 끌어다 놓거나 클릭하여 파일 선택',
                 selectFile: '파일 선택',
@@ -915,13 +995,18 @@ class UIGenerator {
                 white: 'Белый',
                 gray: 'Серый',
                 
-                photoCountTitle: 'Шаг 4',
+                // Gap section
+                gapTitle: 'Шаг 4',
+                gapLabel: 'Зазор (мм):',
+                gapDescription: 'Задайте расстояние между фото для удобства обрезки',
+                
+                photoCountTitle: 'Шаг 5',
                 selectPhotoCount: 'Выбрать количество фотографий',
                 auto: 'Автоматически (максимум)',
                 custom: 'Пользовательский',
                 customCount: 'Пользовательское количество фотографий:',
                 
-                uploadTitle: 'Шаг 5',
+                uploadTitle: 'Шаг 6',
                 uploadDescription: 'Выберите фотографию для удостоверения личности для обработки',
                 dragDropText: 'Перетащите фотографию сюда или нажмите для выбора файла',
                 selectFile: 'Выбрать файл',
@@ -966,13 +1051,18 @@ class UIGenerator {
                 white: 'أبيض',
                 gray: 'رمادي',
                 
-                photoCountTitle: 'الخطوة 4',
+                // Gap section
+                gapTitle: 'الخطوة 4',
+                gapLabel: 'الفاصل (مم):',
+                gapDescription: 'اضبط المسافة بين الصور لتسهيل القص',
+                
+                photoCountTitle: 'الخطوة 5',
                 selectPhotoCount: 'اختر عدد الصور',
                 auto: 'تلقائي (الحد الأقصى)',
                 custom: 'مخصص',
                 customCount: 'عدد الصور المخصص:',
                 
-                uploadTitle: 'الخطوة 5',
+                uploadTitle: 'الخطوة 6',
                 uploadDescription: 'اختر صورة الهوية الخاصة بك للمعالجة',
                 dragDropText: 'اسحب وأفلت الصورة هنا أو انقر لاختيار الملف',
                 selectFile: 'اختر الملف',
@@ -1017,13 +1107,18 @@ class UIGenerator {
                 white: 'Branco',
                 gray: 'Cinza',
                 
-                photoCountTitle: 'Passo 4',
+                // Gap section
+                gapTitle: 'Passo 4',
+                gapLabel: 'Espaço (mm):',
+                gapDescription: 'Defina o espaço entre fotos para facilitar o corte',
+                
+                photoCountTitle: 'Passo 5',
                 selectPhotoCount: 'Selecionar Quantidade de Fotos',
                 auto: 'Automático (Máximo)',
                 custom: 'Personalizado',
                 customCount: 'Quantidade Personalizada de Fotos:',
                 
-                uploadTitle: 'Passo 5',
+                uploadTitle: 'Passo 6',
                 uploadDescription: 'Selecione sua foto de identidade para processar',
                 dragDropText: 'Arraste e solte a foto aqui ou clique para selecionar arquivo',
                 selectFile: 'Selecionar Arquivo',
