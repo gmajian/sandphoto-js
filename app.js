@@ -779,8 +779,9 @@ class SandPhotoApp {
         this.isMultiPhotoMode = (mode === 'multi');
 
         // The global background-fill control applies to single mode only; in
-        // multi mode each photo row has its own, so hide the global one.
-        const bgFillSection = this.bgFillColorSelect ? this.bgFillColorSelect.closest('.form-step') : null;
+        // multi mode each photo row has its own, so hide just the sub-group
+        // (not the whole color step, which also holds the separator color).
+        const bgFillSection = document.getElementById('bgFillGroup');
 
         if (this.isMultiPhotoMode) {
             if (this.singleUploadArea) this.singleUploadArea.style.display = 'none';

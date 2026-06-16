@@ -18,6 +18,7 @@ class UIGenerator {
                 // Separator color section
                 bgColorTitle: 'Separator Color',
                 bgColorDescription: 'Choose the separator line color between photos',
+                colorStepDescription: 'Color settings',
                 blue: 'Blue',
                 white: 'White',
                 gray: 'Gray',
@@ -91,7 +92,6 @@ class UIGenerator {
         container.appendChild(this.generatePhotoSizeSection());
         container.appendChild(this.generatePaperSizeSection());
         container.appendChild(this.generateBgColorSection());
-        container.appendChild(this.generateBgFillSection());
         container.appendChild(this.generateGapSection());
         container.appendChild(this.generatePhotoCountSection());
         container.appendChild(this.generateUploadSection());
@@ -269,26 +269,48 @@ class UIGenerator {
             select.appendChild(option);
         });
         
+        // The step heading is a general "Color settings" so both the separator
+        // color and the photo background color read as parts of this one step.
+        const separatorDesc = document.createElement('div');
+        separatorDesc.textContent = this.config.texts.bgColorDescription;
+        separatorDesc.style.fontSize = '13px';
+        separatorDesc.style.color = '#666';
+        separatorDesc.style.marginTop = '6px';
+
         section.appendChild(title);
         section.appendChild(document.createTextNode(', '));
-        section.appendChild(document.createTextNode(this.config.texts.bgColorDescription));
+        section.appendChild(document.createTextNode(this.config.texts.colorStepDescription || 'Color settings'));
         section.appendChild(document.createElement('br'));
+        section.appendChild(separatorDesc);
         section.appendChild(select);
-        
+        // Photo background replacement lives in this same color step
+        section.appendChild(this.generateBgFillGroup());
+
         return section;
     }
 
-    // Generate background-fill (replace photo background color) section
-    generateBgFillSection() {
-        const section = document.createElement('div');
-        section.className = 'form-step';
+    // Generate the background-fill sub-group. This lives inside the color
+    // (separator) step rather than being its own numbered step, so it doesn't
+    // break the "Step 1 / Step 2 / ..." rhythm.
+    generateBgFillGroup() {
+        const group = document.createElement('div');
+        group.id = 'bgFillGroup';
+        group.style.marginTop = '12px';
 
-        const title = document.createElement('strong');
-        title.textContent = this.config.texts.bgFillTitle || 'Background Color';
+        const label = document.createElement('label');
+        label.htmlFor = 'bgFillColor';
+        label.textContent = (this.config.texts.bgFillTitle || 'Background Color') + ': ';
+        label.style.fontWeight = '600';
+
+        const desc = document.createElement('span');
+        desc.textContent = this.config.texts.bgFillDescription || 'Replace the photo background with a solid color (runs in your browser)';
+        desc.style.fontSize = '13px';
+        desc.style.color = '#666';
 
         const select = document.createElement('select');
         select.id = 'bgFillColor';
         select.className = 'form-control';
+        select.style.marginTop = '6px';
 
         const options = [
             { value: 'keep', text: this.config.texts.bgFillKeep || 'Keep Original', selected: true },
@@ -314,14 +336,13 @@ class UIGenerator {
         status.style.color = '#666';
         status.style.display = 'none';
 
-        section.appendChild(title);
-        section.appendChild(document.createTextNode(', '));
-        section.appendChild(document.createTextNode(this.config.texts.bgFillDescription || 'Replace the photo background with a solid color (runs in your browser)'));
-        section.appendChild(document.createElement('br'));
-        section.appendChild(select);
-        section.appendChild(status);
+        group.appendChild(label);
+        group.appendChild(desc);
+        group.appendChild(document.createElement('br'));
+        group.appendChild(select);
+        group.appendChild(status);
 
-        return section;
+        return group;
     }
 
     // Generate photo count selection section
@@ -649,6 +670,7 @@ class UIGenerator {
                 
                 bgColorTitle: '第三步',
                 bgColorDescription: '选择照片之间的分割线颜色',
+                colorStepDescription: '色彩设置',
                 blue: '蓝色',
                 white: '白色',
                 gray: '灰色',
@@ -723,6 +745,7 @@ class UIGenerator {
                 
                 bgColorTitle: 'Step 3',
                 bgColorDescription: 'Choose the separator line color between photos',
+                colorStepDescription: 'Color settings',
                 blue: 'Blue',
                 white: 'White',
                 gray: 'Gray',
@@ -797,6 +820,7 @@ class UIGenerator {
                 
                 bgColorTitle: 'Paso 3',
                 bgColorDescription: 'Elegir el color de la línea separadora entre fotos',
+                colorStepDescription: 'Ajustes de color',
                 blue: 'Azul',
                 white: 'Blanco',
                 gray: 'Gris',
@@ -853,6 +877,7 @@ class UIGenerator {
                 
                 bgColorTitle: 'Étape 3',
                 bgColorDescription: 'Choisir la couleur de la ligne de séparation entre les photos',
+                colorStepDescription: 'Réglages de couleur',
                 blue: 'Bleu',
                 white: 'Blanc',
                 gray: 'Gris',
@@ -909,6 +934,7 @@ class UIGenerator {
                 
                 bgColorTitle: 'Schritt 3',
                 bgColorDescription: 'Farbe der Trennlinie zwischen Fotos wählen',
+                colorStepDescription: 'Farbeinstellungen',
                 blue: 'Blau',
                 white: 'Weiß',
                 gray: 'Grau',
@@ -965,6 +991,7 @@ class UIGenerator {
                 
                 bgColorTitle: 'ステップ3',
                 bgColorDescription: '写真間の区切り線の色を選択',
+                colorStepDescription: '色の設定',
                 blue: '青',
                 white: '白',
                 gray: 'グレー',
@@ -1021,6 +1048,7 @@ class UIGenerator {
                 
                 bgColorTitle: '3단계',
                 bgColorDescription: '사진 사이의 구분선 색상 선택',
+                colorStepDescription: '색상 설정',
                 blue: '파랑',
                 white: '흰색',
                 gray: '회색',
@@ -1077,6 +1105,7 @@ class UIGenerator {
                 
                 bgColorTitle: 'Шаг 3',
                 bgColorDescription: 'Выбрать цвет разделительной линии между фотографиями',
+                colorStepDescription: 'Настройки цвета',
                 blue: 'Синий',
                 white: 'Белый',
                 gray: 'Серый',
@@ -1133,6 +1162,7 @@ class UIGenerator {
                 
                 bgColorTitle: 'الخطوة 3',
                 bgColorDescription: 'اختر لون خط الفصل بين الصور',
+                colorStepDescription: 'إعدادات الألوان',
                 blue: 'أزرق',
                 white: 'أبيض',
                 gray: 'رمادي',
@@ -1189,6 +1219,7 @@ class UIGenerator {
                 
                 bgColorTitle: 'Passo 3',
                 bgColorDescription: 'Escolher a cor da linha separadora entre fotos',
+                colorStepDescription: 'Configurações de cor',
                 blue: 'Azul',
                 white: 'Branco',
                 gray: 'Cinza',
