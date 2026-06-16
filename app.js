@@ -411,8 +411,9 @@ class SandPhotoApp {
     // model is fetched remotely; photos are processed locally.
     async loadBgRemover() {
         if (!this._bgRemover) {
-            // Pin a known-good version here once you've verified one in the browser.
-            const mod = await import('https://esm.sh/@imgly/background-removal');
+            // Pinned to a verified-working version so an upstream release can't
+            // silently break this feature. Bump deliberately after testing.
+            const mod = await import('https://esm.sh/@imgly/background-removal@1.7.0');
             this._bgRemover = mod.removeBackground;
         }
         return this._bgRemover;
