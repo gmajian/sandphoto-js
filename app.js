@@ -407,35 +407,87 @@ class SandPhotoApp {
         }
     }
 
-    // Get the foreground cutout (transparent background) for an image, lazily
-    // loading the in-browser model and caching the result per photo.
+    // Lazily load the in-browser background removal function from CDN. Only the
+    // model is fetched remotely; photos are processed locally.
+    async loadBgRemover() {
+        if (!this._bgRemover) {
+            // Pin a known-good version here once you've verified one in the browser.
+            const mod = await import('https://esm.sh/@imgly/background-removal');
+            this._bgRemover = mod.removeBackground;
+        }
+        return this._bgRemover;
+    }
+
+    // Run the model on an image and return a foreground cutout Image (no cache).
+    async computeCutout(img, onProgress) {
+        const remover = await this.loadBgRemover();
+        const blob = await remover(img.src, {
+            progress: (key, current, total) => {
+                const pct = total ? Math.round((current / total) * 100) : 0;
+                if (onProgress) onProgress(pct);
+            }
+        });
+        return this.blobToImage(blob);
+    }
+
+    // Single-photo cutout with per-photo caching.
     async getCutout(img) {
         if (this.bgCutout && this.bgCutout.src === img) {
             return this.bgCutout.img;
         }
-
         const processingText = this.config.texts.bgFillProcessing || 'Removing background…';
         this.setBgFillStatus(processingText);
-
-        if (!this._bgRemover) {
-            // Loaded from CDN on first use; only the model is fetched remotely,
-            // the photo itself is processed locally. Pin a known-good version
-            // here once you've verified one in the browser.
-            const mod = await import('https://esm.sh/@imgly/background-removal');
-            this._bgRemover = mod.removeBackground;
-        }
-
-        const blob = await this._bgRemover(img.src, {
-            progress: (key, current, total) => {
-                const pct = total ? Math.round((current / total) * 100) : 0;
-                this.setBgFillStatus(`${processingText} ${pct}%`);
-            }
+        const cutoutImg = await this.computeCutout(img, (pct) => {
+            this.setBgFillStatus(`${processingText} ${pct}%`);
         });
-
-        const cutoutImg = await this.blobToImage(blob);
         this.bgCutout = { src: img, img: cutoutImg };
         this.setBgFillStatus('');
         return cutoutImg;
+    }
+
+    // Per-row status line for a multi-photo entry (id: bgStatus-<photoId>)
+    setPhotoBgStatus(photoId, text) {
+        const el = document.getElementById(`bgStatus-${photoId}`);
+        if (!el) return;
+        el.textContent = text || '';
+        el.style.display = text ? 'inline' : 'none';
+    }
+
+    // Replace one multi-photo entry's background with the chosen solid color.
+    // The cutout is cached on the photo, so changing colors later is instant.
+    async updatePhotoBg(photoId, fillValue) {
+        const photo = this.uploadedPhotos.find(p => p.id === photoId);
+        if (!photo) return;
+        photo.bgFill = fillValue;
+
+        if (fillValue === 'keep') {
+            photo.image = photo.originalImage;
+            this.updatePhotoList();
+            this.updatePreview();
+            return;
+        }
+
+        try {
+            if (!photo.cutout) {
+                const processingText = this.config.texts.bgFillProcessing || 'Removing background…';
+                this.setPhotoBgStatus(photo.id, processingText);
+                photo.cutout = await this.computeCutout(photo.originalImage, (pct) => {
+                    this.setPhotoBgStatus(photo.id, `${processingText} ${pct}%`);
+                });
+                this.setPhotoBgStatus(photo.id, '');
+            }
+            photo.image = await this.compositeOnColor(photo.cutout, this.getBgFillHex(fillValue));
+            this.updatePhotoList();
+            this.updatePreview();
+        } catch (err) {
+            console.error('Background fill failed:', err);
+            this.setPhotoBgStatus(photo.id, '');
+            alert(this.config.texts.bgFillError || 'Background removal failed. Keeping the original photo.');
+            photo.bgFill = 'keep';
+            photo.image = photo.originalImage;
+            this.updatePhotoList();
+            this.updatePreview();
+        }
     }
 
     // Composite a cutout over a solid background color, returning a new Image
@@ -521,14 +573,18 @@ class SandPhotoApp {
         const defaultSize = this.getDefaultPhotoSize();
         const photoData = {
             id: Date.now() + Math.random(), // Unique ID
-            image: img,
+            image: img,            // image used for layout (original or recolored)
+            originalImage: img,    // raw upload, before background replacement
             filename: filename,
             copies: 1,
             // Per-photo size (cm) so different sizes can share one sheet
             sizeIndex: this.targetTypes ? this.targetTypes.indexOf(defaultSize) : 0,
             width: defaultSize.width,
             height: defaultSize.height,
-            sizeName: defaultSize.name
+            sizeName: defaultSize.name,
+            // Per-photo background replacement
+            bgFill: 'keep',
+            cutout: null
         };
 
         this.uploadedPhotos.push(photoData);
@@ -624,6 +680,41 @@ class SandPhotoApp {
                 this.updatePhotoSize(photo.id, e.target.value);
             });
 
+            // Background color selector (per-photo, replaces the photo background)
+            const bgLabel = document.createElement('label');
+            bgLabel.textContent = this.config.texts.bgFillTitle || 'Background:';
+            bgLabel.style.marginRight = '5px';
+            bgLabel.style.fontSize = '14px';
+
+            const bgSelect = document.createElement('select');
+            bgSelect.style.marginRight = '10px';
+            bgSelect.style.fontSize = '13px';
+            const bgOptions = [
+                { value: 'keep', text: this.config.texts.bgFillKeep || 'Keep Original' },
+                { value: 'white', text: this.config.texts.bgFillWhite || 'White' },
+                { value: 'blue', text: this.config.texts.bgFillBlue || 'Blue' },
+                { value: 'red', text: this.config.texts.bgFillRed || 'Red' },
+                { value: 'gray', text: this.config.texts.bgFillGray || 'Gray' }
+            ];
+            bgOptions.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.text;
+                if (opt.value === (photo.bgFill || 'keep')) option.selected = true;
+                bgSelect.appendChild(option);
+            });
+            bgSelect.addEventListener('change', (e) => {
+                this.updatePhotoBg(photo.id, e.target.value);
+            });
+
+            // Per-row background-removal status line
+            const bgStatus = document.createElement('span');
+            bgStatus.id = `bgStatus-${photo.id}`;
+            bgStatus.style.fontSize = '12px';
+            bgStatus.style.color = '#666';
+            bgStatus.style.marginRight = '10px';
+            bgStatus.style.display = 'none';
+
             // Copies input
             const copiesLabel = document.createElement('label');
             copiesLabel.textContent = this.config.texts.photoCopies || 'Copies:';
@@ -659,6 +750,9 @@ class SandPhotoApp {
             photoItem.appendChild(filenameSpan);
             photoItem.appendChild(sizeLabel);
             photoItem.appendChild(sizeSelect);
+            photoItem.appendChild(bgLabel);
+            photoItem.appendChild(bgSelect);
+            photoItem.appendChild(bgStatus);
             photoItem.appendChild(copiesLabel);
             photoItem.appendChild(copiesInput);
             photoItem.appendChild(removeBtn);
@@ -670,13 +764,18 @@ class SandPhotoApp {
     handleUploadModeChange(event) {
         const mode = event.target.value;
         this.isMultiPhotoMode = (mode === 'multi');
-        
+
+        // The global background-fill control applies to single mode only; in
+        // multi mode each photo row has its own, so hide the global one.
+        const bgFillSection = this.bgFillColorSelect ? this.bgFillColorSelect.closest('.form-step') : null;
+
         if (this.isMultiPhotoMode) {
             if (this.singleUploadArea) this.singleUploadArea.style.display = 'none';
             if (this.multiUploadArea) this.multiUploadArea.style.display = 'block';
             if (this.photoListContainer) this.photoListContainer.style.display = 'block';
             if (this.photoCountSelect) this.photoCountSelect.style.display = 'none';
             if (this.customCountGroup) this.customCountGroup.style.display = 'none';
+            if (bgFillSection) bgFillSection.style.display = 'none';
             // Rebuild the list DOM from the preserved multi-photo data
             this.updatePhotoList();
         } else {
@@ -685,6 +784,7 @@ class SandPhotoApp {
             if (this.photoListContainer) this.photoListContainer.style.display = 'none';
             if (this.photoCountSelect) this.photoCountSelect.style.display = 'block';
             if (this.customCountGroup) this.customCountGroup.style.display = 'block';
+            if (bgFillSection) bgFillSection.style.display = 'block';
         }
         // Each mode keeps its own data (single: currentImage, multi:
         // uploadedPhotos), so switching modes preserves both.
