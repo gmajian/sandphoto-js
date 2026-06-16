@@ -549,17 +549,17 @@ class SandPhotoApp {
             if (this.photoListContainer) this.photoListContainer.style.display = 'block';
             if (this.photoCountSelect) this.photoCountSelect.style.display = 'none';
             if (this.customCountGroup) this.customCountGroup.style.display = 'none';
+            // Rebuild the list DOM from the preserved multi-photo data
+            this.updatePhotoList();
         } else {
             if (this.singleUploadArea) this.singleUploadArea.style.display = 'block';
             if (this.multiUploadArea) this.multiUploadArea.style.display = 'none';
             if (this.photoListContainer) this.photoListContainer.style.display = 'none';
             if (this.photoCountSelect) this.photoCountSelect.style.display = 'block';
             if (this.customCountGroup) this.customCountGroup.style.display = 'block';
-            // Clear multi-photo data
-            this.uploadedPhotos = [];
-            this.currentImage = null;
         }
-        
+        // Each mode keeps its own data (single: currentImage, multi:
+        // uploadedPhotos), so switching modes preserves both.
         this.updatePreview();
     }
 
