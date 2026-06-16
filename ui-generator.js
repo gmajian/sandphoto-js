@@ -39,7 +39,8 @@ class UIGenerator {
                 addPhoto: 'Add Photo',
                 removePhoto: 'Remove',
                 photoCopies: 'Copies:',
-                
+                photoSize: 'Size:',
+
                 // Preview section
                 previewTitle: 'Preview',
                 photoCountText: 'Photo Count:',
@@ -608,11 +609,12 @@ class UIGenerator {
                 uploadDescription: '选择你要处理的证件照片',
                 dragDropText: '拖拽照片到这里或点击选择文件',
                 selectFile: '选择文件',
-                multiPhotoMode: '多照片模式',
+                multiPhotoMode: '多照片/混合尺寸模式',
                 singlePhotoMode: '单照片模式',
                 addPhoto: '添加照片',
                 removePhoto: '删除',
                 photoCopies: '份数:',
+                photoSize: '尺寸:',
                 
                 previewTitle: '将来的照片就是这个样子的：',
                 photoCountText: '照片数量:',
@@ -669,12 +671,13 @@ class UIGenerator {
                 uploadDescription: 'Select your ID photo(s) to process',
                 dragDropText: 'Drag and drop photo(s) here or click to select file(s)',
                 selectFile: 'Select File(s)',
-                multiPhotoMode: 'Multi-Photo Mode',
+                multiPhotoMode: 'Multi-Photo / Mixed Sizes',
                 singlePhotoMode: 'Single Photo Mode',
                 addPhoto: 'Add Photo',
                 removePhoto: 'Remove',
                 photoCopies: 'Copies:',
-                
+                photoSize: 'Size:',
+
                 previewTitle: 'Preview:',
                 photoCountText: 'Photo Count:',
                 downloadTitle: 'Final Step',

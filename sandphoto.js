@@ -334,6 +334,187 @@ class SandPhoto {
         return placedCount;
     }
 
+    // Compute the centered crop rectangle to fit an image into a target size
+    computeCrop(img, targetW, targetH) {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const ratio1 = w / targetW;
+        const ratio2 = h / targetH;
+        let sw, sh, sx, sy;
+
+        if (ratio1 > ratio2) {
+            sw = targetW * ratio2;
+            sh = h;
+            sx = (w - sw) / 2;
+            sy = 0;
+        } else {
+            sh = targetH * ratio1;
+            sw = w;
+            sy = (h - sh) / 2;
+            sx = 0;
+        }
+
+        return { sx, sy, sw, sh };
+    }
+
+    // Pack rectangles of possibly different sizes into a container using a
+    // first-fit-decreasing-height shelf algorithm. Rows are centered both
+    // horizontally and vertically. Returns the rectangles that fit.
+    packShelves(rects, containerW, containerH, gap) {
+        // Sort by height descending so equal-height photos group into the same
+        // rows (e.g. all 2 inch on one shelf, all 1 inch on another).
+        const sorted = [...rects].sort((a, b) => b.h - a.h);
+
+        // Build rows greedily.
+        const rows = [];
+        let current = { items: [], width: 0, height: 0 };
+        for (const r of sorted) {
+            // Skip rectangles that can never fit the container width.
+            if (r.w > containerW) {
+                continue;
+            }
+            const addW = (current.items.length > 0 ? gap : 0) + r.w;
+            if (current.items.length > 0 && current.width + addW > containerW) {
+                rows.push(current);
+                current = { items: [], width: 0, height: 0 };
+            }
+            current.width += (current.items.length > 0 ? gap : 0) + r.w;
+            current.items.push(r);
+            current.height = Math.max(current.height, r.h);
+        }
+        if (current.items.length > 0) {
+            rows.push(current);
+        }
+
+        // Keep the rows that fit vertically. Rows are ordered tall to short, so
+        // a row that doesn't fit may still be followed by shorter rows that do;
+        // skip (continue) rather than stop (break).
+        const fitRows = [];
+        let totalHeight = 0;
+        for (const row of rows) {
+            const newHeight = totalHeight + (fitRows.length > 0 ? gap : 0) + row.height;
+            if (newHeight > containerH) {
+                continue;
+            }
+            totalHeight = newHeight;
+            fitRows.push(row);
+        }
+
+        // Center the whole block vertically, each row horizontally, and each
+        // item vertically within its row.
+        const placed = [];
+        let y = (containerH - totalHeight) / 2;
+        for (const row of fitRows) {
+            let x = (containerW - row.width) / 2;
+            for (const it of row.items) {
+                placed.push({
+                    x: x,
+                    y: y + (row.height - it.h) / 2,
+                    w: it.w,
+                    h: it.h,
+                    img: it.img,
+                    crop: it.crop
+                });
+                x += it.w + gap;
+            }
+            y += row.height + gap;
+        }
+
+        return { placed };
+    }
+
+    // Process and place photos of possibly different sizes (mixed-size layout)
+    // photoDataArray: [{ image, width (cm), height (cm), copies }]
+    putMixedPhotos(photoDataArray, separatorColorId = "blue") {
+        if (!photoDataArray || photoDataArray.length === 0) {
+            return 0;
+        }
+
+        const GAP = this.gapPx;
+
+        // Expand into a flat list of individual photo rectangles (one per copy),
+        // computing the crop once per distinct photo/size.
+        const rects = [];
+        for (const photo of photoDataArray) {
+            const targetW = this.getPixelFromCM(photo.width);
+            const targetH = this.getPixelFromCM(photo.height);
+            const copies = Math.max(0, parseInt(photo.copies) || 0);
+            if (targetW <= 0 || targetH <= 0 || copies === 0) {
+                continue;
+            }
+            const crop = this.computeCrop(photo.image, targetW, targetH);
+            for (let c = 0; c < copies; c++) {
+                rects.push({ w: targetW, h: targetH, img: photo.image, crop: crop });
+            }
+        }
+
+        if (rects.length === 0) {
+            return 0;
+        }
+
+        // Try both paper orientations and keep whichever fits more photos.
+        const portrait = this.packShelves(rects, this.containerWidth, this.containerHeight, GAP);
+        const landscape = this.packShelves(rects, this.containerHeight, this.containerWidth, GAP);
+
+        let chosen, finalWidth, finalHeight;
+        if (landscape.placed.length > portrait.placed.length) {
+            chosen = landscape;
+            finalWidth = this.containerHeight;
+            finalHeight = this.containerWidth;
+        } else {
+            chosen = portrait;
+            finalWidth = this.containerWidth;
+            finalHeight = this.containerHeight;
+        }
+
+        // Create canvas with proper dimensions
+        this.containerWidth = finalWidth;
+        this.containerHeight = finalHeight;
+        this.createEmptyImage(separatorColorId);
+
+        // Determine border color
+        const borderColor = this.getBorderColor(separatorColorId);
+
+        // Prepare layout capture
+        const items = [];
+
+        // Place photos on canvas
+        for (const p of chosen.placed) {
+            const dx = Math.round(p.x);
+            const dy = Math.round(p.y);
+            this.ctx.drawImage(p.img,
+                p.crop.sx, p.crop.sy, p.crop.sw, p.crop.sh,  // Source rectangle
+                dx, dy, p.w, p.h  // Destination rectangle
+            );
+            // Draw 1px border around each photo
+            this.ctx.save();
+            this.ctx.strokeStyle = borderColor;
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(dx + 0.5, dy + 0.5, p.w - 1, p.h - 1);
+            this.ctx.restore();
+
+            // Capture layout item
+            items.push({
+                x: dx,
+                y: dy,
+                w: p.w,
+                h: p.h,
+                img: p.img,
+                crop: { sx: p.crop.sx, sy: p.crop.sy, sw: p.crop.sw, sh: p.crop.sh }
+            });
+        }
+
+        // Save layout for preview rendering
+        this.lastLayout = {
+            containerWidth: this.containerWidth,
+            containerHeight: this.containerHeight,
+            items: items,
+            borderColor: borderColor
+        };
+
+        return chosen.placed.length;
+    }
+
     // Process and place photos on the canvas with specified count
     putPhotoWithCount(imageElement, separatorColorId = "blue", targetCount) {
         const img = imageElement;

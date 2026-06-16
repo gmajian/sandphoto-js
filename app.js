@@ -376,17 +376,49 @@ class SandPhotoApp {
         });
     }
 
+    // Determine the default size for a newly added multi-photo. Uses the
+    // globally selected photo size when it points to a predefined type,
+    // otherwise falls back to the first available type.
+    getDefaultPhotoSize() {
+        if (this.targetTypeSelect) {
+            const index = parseInt(this.targetTypeSelect.value);
+            if (!isNaN(index) && this.targetTypes && this.targetTypes[index]) {
+                return this.targetTypes[index];
+            }
+        }
+        return (this.targetTypes && this.targetTypes[0]) || { name: '', width: 2.5, height: 3.5 };
+    }
+
     addPhotoToList(img, filename) {
+        const defaultSize = this.getDefaultPhotoSize();
         const photoData = {
             id: Date.now() + Math.random(), // Unique ID
             image: img,
             filename: filename,
-            copies: 1
+            copies: 1,
+            // Per-photo size (cm) so different sizes can share one sheet
+            sizeIndex: this.targetTypes ? this.targetTypes.indexOf(defaultSize) : 0,
+            width: defaultSize.width,
+            height: defaultSize.height,
+            sizeName: defaultSize.name
         };
-        
+
         this.uploadedPhotos.push(photoData);
         this.updatePhotoList();
         this.updatePreview();
+    }
+
+    // Update the size of a photo in the multi-photo list
+    updatePhotoSize(photoId, sizeIndex) {
+        const photo = this.uploadedPhotos.find(p => p.id === photoId);
+        const size = this.targetTypes[parseInt(sizeIndex)];
+        if (photo && size) {
+            photo.sizeIndex = parseInt(sizeIndex);
+            photo.width = size.width;
+            photo.height = size.height;
+            photo.sizeName = size.name;
+            this.updatePreview();
+        }
     }
 
     removePhotoFromList(photoId) {
@@ -443,6 +475,27 @@ class SandPhotoApp {
             filenameSpan.style.textOverflow = 'ellipsis';
             filenameSpan.style.whiteSpace = 'nowrap';
 
+            // Size selector (lets each photo use a different size on one sheet)
+            const sizeLabel = document.createElement('label');
+            sizeLabel.textContent = this.config.texts.photoSize || 'Size:';
+            sizeLabel.style.marginRight = '5px';
+            sizeLabel.style.fontSize = '14px';
+
+            const sizeSelect = document.createElement('select');
+            sizeSelect.style.marginRight = '10px';
+            sizeSelect.style.fontSize = '13px';
+            sizeSelect.style.maxWidth = '150px';
+            (this.targetTypes || []).forEach((type, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${type.name} (${type.width}×${type.height})`;
+                if (index === photo.sizeIndex) option.selected = true;
+                sizeSelect.appendChild(option);
+            });
+            sizeSelect.addEventListener('change', (e) => {
+                this.updatePhotoSize(photo.id, e.target.value);
+            });
+
             // Copies input
             const copiesLabel = document.createElement('label');
             copiesLabel.textContent = this.config.texts.photoCopies || 'Copies:';
@@ -476,6 +529,8 @@ class SandPhotoApp {
 
             photoItem.appendChild(thumbnail);
             photoItem.appendChild(filenameSpan);
+            photoItem.appendChild(sizeLabel);
+            photoItem.appendChild(sizeSelect);
             photoItem.appendChild(copiesLabel);
             photoItem.appendChild(copiesInput);
             photoItem.appendChild(removeBtn);
@@ -639,8 +694,9 @@ class SandPhotoApp {
             let photoCount;
 
             if (this.isMultiPhotoMode) {
-                // Multi-photo mode: process all uploaded photos
-                photoCount = this.sandPhoto.putMultiplePhotos(this.uploadedPhotos, bgColor);
+                // Multi-photo mode: each photo carries its own size, so pack
+                // them together as a mixed-size layout on one sheet.
+                photoCount = this.sandPhoto.putMixedPhotos(this.uploadedPhotos, bgColor);
             } else {
                 // Single photo mode: use existing logic
                 const photoCountSetting = this.getSelectedPhotoCount();
