@@ -773,20 +773,44 @@ class SandPhotoApp {
         if (this.isMultiPhotoMode) {
             // Multi-photo mode: create filename based on number of different photos
             const uniquePhotos = this.uploadedPhotos.length;
-            const filenameTemplates = {
-                en: (count, unique, photo, paper) => `${count}pcs_${unique}photos_${photo}_on_${paper}.jpg`,
-                zh: (count, unique, photo, paper) => `${count}张${unique}种${photo}[以${paper}冲洗].jpg`,
-                es: (count, unique, photo, paper) => `${count}uds_${unique}fotos_${photo}_en_${paper}.jpg`,
-                fr: (count, unique, photo, paper) => `${count}pcs_${unique}photos_${photo}_sur_${paper}.jpg`,
-                de: (count, unique, photo, paper) => `${count}stk_${unique}fotos_${photo}_auf_${paper}.jpg`,
-                ja: (count, unique, photo, paper) => `${count}枚_${unique}種類_${photo}_（${paper}）.jpg`,
-                ko: (count, unique, photo, paper) => `${count}매_${unique}종류_${photo}_(${paper}).jpg`,
-                ru: (count, unique, photo, paper) => `${count}шт_${unique}фото_${photo}_на_${paper}.jpg`,
-                ar: (count, unique, photo, paper) => `${count}قطع_${unique}صورة_${photo}_على_${paper}.jpg`,
-                pt: (count, unique, photo, paper) => `${count}un_${unique}fotos_${photo}_em_${paper}.jpg`,
-            };
-            const template = filenameTemplates[lang] || filenameTemplates['en'];
-            filename = template(photoCount, uniquePhotos, targetType.name, containerType.name);
+            const distinctSizes = new Set(
+                this.uploadedPhotos.map(p => p.sizeName || `${p.width}x${p.height}`)
+            );
+
+            if (distinctSizes.size > 1) {
+                // Mixed sizes on one sheet: don't reference a single size name
+                const mixedTemplates = {
+                    en: (count, unique, paper) => `${count}pcs_${unique}photos_mixed_sizes_on_${paper}.jpg`,
+                    zh: (count, unique, paper) => `${count}张${unique}种混排[以${paper}冲洗].jpg`,
+                    es: (count, unique, paper) => `${count}uds_${unique}fotos_tamanos_mixtos_en_${paper}.jpg`,
+                    fr: (count, unique, paper) => `${count}pcs_${unique}photos_tailles_mixtes_sur_${paper}.jpg`,
+                    de: (count, unique, paper) => `${count}stk_${unique}fotos_gemischte_groessen_auf_${paper}.jpg`,
+                    ja: (count, unique, paper) => `${count}枚_${unique}種類_混合サイズ_（${paper}）.jpg`,
+                    ko: (count, unique, paper) => `${count}매_${unique}종류_혼합크기_(${paper}).jpg`,
+                    ru: (count, unique, paper) => `${count}шт_${unique}фото_разные_размеры_на_${paper}.jpg`,
+                    ar: (count, unique, paper) => `${count}قطع_${unique}صورة_احجام_مختلفة_على_${paper}.jpg`,
+                    pt: (count, unique, paper) => `${count}un_${unique}fotos_tamanhos_mistos_em_${paper}.jpg`,
+                };
+                const template = mixedTemplates[lang] || mixedTemplates['en'];
+                filename = template(photoCount, uniquePhotos, containerType.name);
+            } else {
+                // All photos share one size: use that size's actual name
+                const sizeName = (this.uploadedPhotos[0] && this.uploadedPhotos[0].sizeName) || targetType.name;
+                const filenameTemplates = {
+                    en: (count, unique, photo, paper) => `${count}pcs_${unique}photos_${photo}_on_${paper}.jpg`,
+                    zh: (count, unique, photo, paper) => `${count}张${unique}种${photo}[以${paper}冲洗].jpg`,
+                    es: (count, unique, photo, paper) => `${count}uds_${unique}fotos_${photo}_en_${paper}.jpg`,
+                    fr: (count, unique, photo, paper) => `${count}pcs_${unique}photos_${photo}_sur_${paper}.jpg`,
+                    de: (count, unique, photo, paper) => `${count}stk_${unique}fotos_${photo}_auf_${paper}.jpg`,
+                    ja: (count, unique, photo, paper) => `${count}枚_${unique}種類_${photo}_（${paper}）.jpg`,
+                    ko: (count, unique, photo, paper) => `${count}매_${unique}종류_${photo}_(${paper}).jpg`,
+                    ru: (count, unique, photo, paper) => `${count}шт_${unique}фото_${photo}_на_${paper}.jpg`,
+                    ar: (count, unique, photo, paper) => `${count}قطع_${unique}صورة_${photo}_على_${paper}.jpg`,
+                    pt: (count, unique, photo, paper) => `${count}un_${unique}fotos_${photo}_em_${paper}.jpg`,
+                };
+                const template = filenameTemplates[lang] || filenameTemplates['en'];
+                filename = template(photoCount, uniquePhotos, sizeName, containerType.name);
+            }
         } else {
             // Single photo mode: use existing filename logic
             const filenameTemplates = {
