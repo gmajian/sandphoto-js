@@ -30,6 +30,7 @@ class UIGenerator {
                 bgFillBlue: 'Blue',
                 bgFillRed: 'Red',
                 bgFillGray: 'Gray',
+                bgFillDownloading: 'Downloading model (first use only)…',
                 bgFillProcessing: 'Removing background…',
                 bgFillError: 'Background removal failed. Keeping the original photo.',
 
@@ -660,6 +661,7 @@ class UIGenerator {
                 bgFillBlue: '蓝色',
                 bgFillRed: '红色',
                 bgFillGray: '灰色',
+                bgFillDownloading: '正在下载模型（仅首次）…',
                 bgFillProcessing: '正在去除背景…',
                 bgFillError: '去除背景失败，已保留原图。',
 
@@ -733,6 +735,7 @@ class UIGenerator {
                 bgFillBlue: 'Blue',
                 bgFillRed: 'Red',
                 bgFillGray: 'Gray',
+                bgFillDownloading: 'Downloading model (first use only)…',
                 bgFillProcessing: 'Removing background…',
                 bgFillError: 'Background removal failed. Keeping the original photo.',
 

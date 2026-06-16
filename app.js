@@ -418,13 +418,28 @@ class SandPhotoApp {
         return this._bgRemover;
     }
 
+    // Serialize background-removal jobs: the model can't sensibly run two
+    // inferences at once, and concurrent jobs make the progress lines fight
+    // each other. Each call waits for the previous one to finish.
+    runExclusive(task) {
+        const prev = this._bgChain || Promise.resolve();
+        const result = prev.then(() => task());
+        // Keep the chain alive whether the task succeeds or fails.
+        this._bgChain = result.then(() => {}, () => {});
+        return result;
+    }
+
     // Run the model on an image and return a foreground cutout Image (no cache).
-    async computeCutout(img, onProgress) {
+    // onStatus receives a phase label (downloading vs processing); the library
+    // reports per-file download progress, so a numeric percent is misleading.
+    async computeCutout(img, onStatus) {
         const remover = await this.loadBgRemover();
+        const downloadingText = this.config.texts.bgFillDownloading || 'Downloading model…';
+        const processingText = this.config.texts.bgFillProcessing || 'Removing background…';
         const blob = await remover(img.src, {
-            progress: (key, current, total) => {
-                const pct = total ? Math.round((current / total) * 100) : 0;
-                if (onProgress) onProgress(pct);
+            progress: (key) => {
+                const downloading = /fetch|download/i.test(key || '');
+                if (onStatus) onStatus(downloading ? downloadingText : processingText);
             }
         });
         return this.blobToImage(blob);
@@ -435,11 +450,10 @@ class SandPhotoApp {
         if (this.bgCutout && this.bgCutout.src === img) {
             return this.bgCutout.img;
         }
-        const processingText = this.config.texts.bgFillProcessing || 'Removing background…';
-        this.setBgFillStatus(processingText);
-        const cutoutImg = await this.computeCutout(img, (pct) => {
-            this.setBgFillStatus(`${processingText} ${pct}%`);
-        });
+        this.setBgFillStatus(this.config.texts.bgFillProcessing || 'Removing background…');
+        const cutoutImg = await this.runExclusive(
+            () => this.computeCutout(img, (text) => this.setBgFillStatus(text))
+        );
         this.bgCutout = { src: img, img: cutoutImg };
         this.setBgFillStatus('');
         return cutoutImg;
@@ -469,11 +483,10 @@ class SandPhotoApp {
 
         try {
             if (!photo.cutout) {
-                const processingText = this.config.texts.bgFillProcessing || 'Removing background…';
-                this.setPhotoBgStatus(photo.id, processingText);
-                photo.cutout = await this.computeCutout(photo.originalImage, (pct) => {
-                    this.setPhotoBgStatus(photo.id, `${processingText} ${pct}%`);
-                });
+                this.setPhotoBgStatus(photo.id, this.config.texts.bgFillProcessing || 'Removing background…');
+                photo.cutout = await this.runExclusive(
+                    () => this.computeCutout(photo.originalImage, (text) => this.setPhotoBgStatus(photo.id, text))
+                );
                 this.setPhotoBgStatus(photo.id, '');
             }
             photo.image = await this.compositeOnColor(photo.cutout, this.getBgFillHex(fillValue));
