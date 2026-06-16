@@ -21,7 +21,18 @@ class UIGenerator {
                 blue: 'Blue',
                 white: 'White',
                 gray: 'Gray',
-                
+
+                // Background-fill (replace photo background) section
+                bgFillTitle: 'Background Color',
+                bgFillDescription: 'Replace the photo background with a solid color (runs in your browser)',
+                bgFillKeep: 'Keep Original',
+                bgFillWhite: 'White',
+                bgFillBlue: 'Blue',
+                bgFillRed: 'Red',
+                bgFillGray: 'Gray',
+                bgFillProcessing: 'Removing background…',
+                bgFillError: 'Background removal failed. Keeping the original photo.',
+
                 // Photo count section
                 photoCountTitle: 'Photo Count',
                 selectPhotoCount: 'Select Photo Count',
@@ -79,6 +90,7 @@ class UIGenerator {
         container.appendChild(this.generatePhotoSizeSection());
         container.appendChild(this.generatePaperSizeSection());
         container.appendChild(this.generateBgColorSection());
+        container.appendChild(this.generateBgFillSection());
         container.appendChild(this.generateGapSection());
         container.appendChild(this.generatePhotoCountSection());
         container.appendChild(this.generateUploadSection());
@@ -262,6 +274,52 @@ class UIGenerator {
         section.appendChild(document.createElement('br'));
         section.appendChild(select);
         
+        return section;
+    }
+
+    // Generate background-fill (replace photo background color) section
+    generateBgFillSection() {
+        const section = document.createElement('div');
+        section.className = 'form-step';
+
+        const title = document.createElement('strong');
+        title.textContent = this.config.texts.bgFillTitle || 'Background Color';
+
+        const select = document.createElement('select');
+        select.id = 'bgFillColor';
+        select.className = 'form-control';
+
+        const options = [
+            { value: 'keep', text: this.config.texts.bgFillKeep || 'Keep Original', selected: true },
+            { value: 'white', text: this.config.texts.bgFillWhite || 'White' },
+            { value: 'blue', text: this.config.texts.bgFillBlue || 'Blue' },
+            { value: 'red', text: this.config.texts.bgFillRed || 'Red' },
+            { value: 'gray', text: this.config.texts.bgFillGray || 'Gray' }
+        ];
+
+        options.forEach(opt => {
+            const optionElement = document.createElement('option');
+            optionElement.value = opt.value;
+            optionElement.textContent = opt.text;
+            if (opt.selected) optionElement.selected = true;
+            select.appendChild(optionElement);
+        });
+
+        // Status line shown while the background is being removed
+        const status = document.createElement('div');
+        status.id = 'bgFillStatus';
+        status.style.fontSize = '13px';
+        status.style.marginTop = '6px';
+        status.style.color = '#666';
+        status.style.display = 'none';
+
+        section.appendChild(title);
+        section.appendChild(document.createTextNode(', '));
+        section.appendChild(document.createTextNode(this.config.texts.bgFillDescription || 'Replace the photo background with a solid color (runs in your browser)'));
+        section.appendChild(document.createElement('br'));
+        section.appendChild(select);
+        section.appendChild(status);
+
         return section;
     }
 
@@ -593,7 +651,18 @@ class UIGenerator {
                 blue: '蓝色',
                 white: '白色',
                 gray: '灰色',
-                
+
+                // Background-fill (replace photo background) section
+                bgFillTitle: '底色',
+                bgFillDescription: '把照片背景换成纯色（全程在你的浏览器本地处理）',
+                bgFillKeep: '保持原样',
+                bgFillWhite: '白色',
+                bgFillBlue: '蓝色',
+                bgFillRed: '红色',
+                bgFillGray: '灰色',
+                bgFillProcessing: '正在去除背景…',
+                bgFillError: '去除背景失败，已保留原图。',
+
                 // Gap section
                 gapTitle: '第四步',
                 gapLabel: '间距 (毫米):',
@@ -655,7 +724,18 @@ class UIGenerator {
                 blue: 'Blue',
                 white: 'White',
                 gray: 'Gray',
-                
+
+                // Background-fill (replace photo background) section
+                bgFillTitle: 'Background Color',
+                bgFillDescription: 'Replace the photo background with a solid color (runs in your browser)',
+                bgFillKeep: 'Keep Original',
+                bgFillWhite: 'White',
+                bgFillBlue: 'Blue',
+                bgFillRed: 'Red',
+                bgFillGray: 'Gray',
+                bgFillProcessing: 'Removing background…',
+                bgFillError: 'Background removal failed. Keeping the original photo.',
+
                 // Gap section
                 gapTitle: 'Step 4',
                 gapLabel: 'Gap (mm):',

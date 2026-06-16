@@ -8,6 +8,7 @@ class SandPhotoApp {
                 targetTypeSelect: 'targetType',
                 containerTypeSelect: 'containerType',
                 bgColorSelect: 'bgColor',
+                bgFillColorSelect: 'bgFillColor',
                 previewSection: 'previewSection',
                 previewCanvas: 'previewCanvas',
                 photoCount: 'count',
@@ -41,6 +42,9 @@ class SandPhotoApp {
         };
         
         this.currentImage = null;
+        this.originalImage = null; // raw upload, before any background replacement
+        this.bgCutout = null;      // cached cutout { src: Image, img: Image } for the current photo
+        this._bgRemover = null;    // lazily-loaded in-browser background removal function
         this.sandPhoto = null;
         this.uploadedPhotos = []; // Array to store multiple photos with their copy counts
         this.isMultiPhotoMode = false;
@@ -56,6 +60,7 @@ class SandPhotoApp {
         this.targetTypeSelect = document.getElementById(this.config.elementIds.targetTypeSelect);
         this.containerTypeSelect = document.getElementById(this.config.elementIds.containerTypeSelect);
         this.bgColorSelect = document.getElementById(this.config.elementIds.bgColorSelect);
+        this.bgFillColorSelect = document.getElementById(this.config.elementIds.bgFillColorSelect);
         this.previewSection = document.getElementById(this.config.elementIds.previewSection);
         this.previewCanvas = document.getElementById(this.config.elementIds.previewCanvas);
         this.photoCount = document.getElementById(this.config.elementIds.photoCount);
@@ -163,6 +168,9 @@ class SandPhotoApp {
         }
         if (this.bgColorSelect) {
             this.bgColorSelect.addEventListener('change', () => this.updatePreview());
+        }
+        if (this.bgFillColorSelect) {
+            this.bgFillColorSelect.addEventListener('change', () => this.applyBackgroundFill());
         }
 
         // Custom size input events
@@ -333,12 +341,132 @@ class SandPhotoApp {
         reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
-                this.currentImage = img;
-                this.updatePreview();
+                this.originalImage = img;
+                this.bgCutout = null; // invalidate cutout cache for the new photo
+                this.applyBackgroundFill();
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
+    }
+
+    // Map a background-fill choice to a solid color (common ID-photo colors)
+    getBgFillHex(value) {
+        switch (value) {
+            case 'white': return '#FFFFFF';
+            case 'blue': return '#438EDB';
+            case 'red': return '#D6453D';
+            case 'gray': return '#C8C8C8';
+            default: return '#FFFFFF';
+        }
+    }
+
+    // Show/hide the background-removal status line
+    setBgFillStatus(text) {
+        const el = document.getElementById('bgFillStatus');
+        if (!el) return;
+        if (text) {
+            el.textContent = text;
+            el.style.display = 'block';
+        } else {
+            el.textContent = '';
+            el.style.display = 'none';
+        }
+    }
+
+    // Replace the single-photo background with the chosen solid color. The
+    // cutout (alpha matte) is computed once per photo and cached, so switching
+    // colors afterwards only re-composites and is instant. Runs entirely in the
+    // browser; the photo never leaves the device.
+    async applyBackgroundFill() {
+        // Background replacement currently applies to single-photo mode only.
+        if (this.isMultiPhotoMode || !this.originalImage) {
+            return;
+        }
+
+        const fill = this.bgFillColorSelect ? this.bgFillColorSelect.value : 'keep';
+
+        if (fill === 'keep') {
+            this.currentImage = this.originalImage;
+            this.setBgFillStatus('');
+            this.updatePreview();
+            return;
+        }
+
+        try {
+            const cutout = await this.getCutout(this.originalImage);
+            this.currentImage = await this.compositeOnColor(cutout, this.getBgFillHex(fill));
+            this.updatePreview();
+        } catch (err) {
+            console.error('Background fill failed:', err);
+            this.setBgFillStatus('');
+            alert(this.config.texts.bgFillError || 'Background removal failed. Keeping the original photo.');
+            if (this.bgFillColorSelect) this.bgFillColorSelect.value = 'keep';
+            this.currentImage = this.originalImage;
+            this.updatePreview();
+        }
+    }
+
+    // Get the foreground cutout (transparent background) for an image, lazily
+    // loading the in-browser model and caching the result per photo.
+    async getCutout(img) {
+        if (this.bgCutout && this.bgCutout.src === img) {
+            return this.bgCutout.img;
+        }
+
+        const processingText = this.config.texts.bgFillProcessing || 'Removing background…';
+        this.setBgFillStatus(processingText);
+
+        if (!this._bgRemover) {
+            // Loaded from CDN on first use; only the model is fetched remotely,
+            // the photo itself is processed locally. Pin a known-good version
+            // here once you've verified one in the browser.
+            const mod = await import('https://esm.sh/@imgly/background-removal');
+            this._bgRemover = mod.removeBackground;
+        }
+
+        const blob = await this._bgRemover(img.src, {
+            progress: (key, current, total) => {
+                const pct = total ? Math.round((current / total) * 100) : 0;
+                this.setBgFillStatus(`${processingText} ${pct}%`);
+            }
+        });
+
+        const cutoutImg = await this.blobToImage(blob);
+        this.bgCutout = { src: img, img: cutoutImg };
+        this.setBgFillStatus('');
+        return cutoutImg;
+    }
+
+    // Composite a cutout over a solid background color, returning a new Image
+    compositeOnColor(cutout, hex) {
+        const canvas = document.createElement('canvas');
+        canvas.width = cutout.naturalWidth;
+        canvas.height = cutout.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = hex;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(cutout, 0, 0);
+        return this.canvasToImage(canvas);
+    }
+
+    // Helpers: convert a Blob / canvas into a fully-loaded Image
+    blobToImage(blob) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = URL.createObjectURL(blob);
+        });
+    }
+
+    canvasToImage(canvas) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = canvas.toDataURL('image/png');
+        });
     }
 
     handleMultiFileSelect(event) {
