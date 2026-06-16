@@ -60,7 +60,9 @@ class SandPhotoApp {
         this.targetTypeSelect = document.getElementById(this.config.elementIds.targetTypeSelect);
         this.containerTypeSelect = document.getElementById(this.config.elementIds.containerTypeSelect);
         this.bgColorSelect = document.getElementById(this.config.elementIds.bgColorSelect);
-        this.bgFillColorSelect = document.getElementById(this.config.elementIds.bgFillColorSelect);
+        // Fall back to the id UIGenerator always produces, so the single-photo
+        // background control still works on pages whose config predates it.
+        this.bgFillColorSelect = document.getElementById(this.config.elementIds.bgFillColorSelect || 'bgFillColor');
         this.previewSection = document.getElementById(this.config.elementIds.previewSection);
         this.previewCanvas = document.getElementById(this.config.elementIds.previewCanvas);
         this.photoCount = document.getElementById(this.config.elementIds.photoCount);
