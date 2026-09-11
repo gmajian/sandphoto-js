@@ -75,6 +75,8 @@ class UIGenerator {
                 generatePreviewFirst: 'Please generate a preview first.',
                 selectValidSizes: 'Please select valid photo and paper sizes.',
                 downloadError: 'Error downloading image. Please try again.',
+                downloadTooLarge: 'Could not generate the file: this paper size is too large for this device. Please pick a smaller paper size (e.g. 6 inch) and try again.',
+                dpiReduced: 'Output resolution reduced to {dpi} DPI so this paper size works on your device.',
                 
                 ...config.texts
             },
@@ -564,10 +566,18 @@ class UIGenerator {
         const countInfo = document.createElement('p');
         countInfo.id = 'photoCountInfo';
         countInfo.innerHTML = `${this.config.texts.photoCountText} <span id="count">0</span>`;
-        
+
+        // Shown when the output DPI had to be lowered for this device
+        const dpiNotice = document.createElement('p');
+        dpiNotice.id = 'dpiNotice';
+        dpiNotice.style.fontSize = '13px';
+        dpiNotice.style.color = '#a06000';
+        dpiNotice.style.display = 'none';
+
         section.appendChild(title);
         section.appendChild(previewElement);
         section.appendChild(countInfo);
+        section.appendChild(dpiNotice);
         
         return section;
     }
@@ -724,7 +734,9 @@ class UIGenerator {
                 previewError: '生成预览时出错。请重试。',
                 generatePreviewFirst: '请先生成预览。',
                 selectValidSizes: '请选择有效的照片和纸张尺寸。',
-                downloadError: '下载图片时出错。请重试。'
+                downloadError: '下载图片时出错。请重试。',
+                downloadTooLarge: '生成失败：所选纸张尺寸对当前设备来说过大，请换用更小的纸张（如 6寸）后重试。',
+                dpiReduced: '为兼容当前设备，输出分辨率已降为 {dpi} DPI（所选纸张在此设备上过大）。'
             }
         };
     }
@@ -799,7 +811,9 @@ class UIGenerator {
                 previewError: 'Error generating preview. Please try again.',
                 generatePreviewFirst: 'Please generate a preview first.',
                 selectValidSizes: 'Please select valid photo and paper sizes.',
-                downloadError: 'Error downloading image. Please try again.'
+                downloadError: 'Error downloading image. Please try again.',
+                downloadTooLarge: 'Could not generate the file: this paper size is too large for this device. Please pick a smaller paper size (e.g. 6 inch) and try again.',
+                dpiReduced: 'Output resolution reduced to {dpi} DPI so this paper size works on your device.'
             }
         };
     }

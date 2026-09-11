@@ -352,6 +352,21 @@ class SandPhotoApp {
         reader.readAsDataURL(file);
     }
 
+    // Tell the user when the output DPI had to be lowered for this device
+    setDpiNotice(effectiveDpi) {
+        const el = document.getElementById('dpiNotice');
+        if (!el) return;
+        if (effectiveDpi && effectiveDpi < 600) {
+            const template = this.config.texts.dpiReduced
+                || 'Output resolution reduced to {dpi} DPI so this paper size works on your device.';
+            el.textContent = template.replace('{dpi}', effectiveDpi);
+            el.style.display = 'block';
+        } else {
+            el.textContent = '';
+            el.style.display = 'none';
+        }
+    }
+
     // Map a background-fill choice to a solid color (common ID-photo colors)
     getBgFillHex(value) {
         switch (value) {
@@ -927,6 +942,11 @@ class SandPhotoApp {
 
             // Create SandPhoto instance
             this.sandPhoto = new SandPhoto();
+            // Large sheets at 600 DPI exceed the canvas limit on some devices
+            // (notably iOS), where generation and download fail silently. Drop
+            // the DPI just enough to stay within it, and say so.
+            const effectiveDpi = this.sandPhoto.fitDpiToPaper(containerType.width, containerType.height);
+            this.setDpiNotice(effectiveDpi);
             this.sandPhoto.setContainerSize(containerType.width, containerType.height);
             this.sandPhoto.setTargetSize(targetType.width, targetType.height);
             // Set gap from UI (mm to cm conversion)
@@ -1074,11 +1094,22 @@ class SandPhotoApp {
             filename = template(photoCount, targetType.name, containerType.name);
         }
 
-        try {
-            this.sandPhoto.downloadImage(filename);
-        } catch (error) {
+        const reportFailure = (error) => {
             console.error('Error downloading image:', error);
-            alert(this.config.texts.downloadError || 'Error downloading image. Please try again.');
+            const message = (error && error.code === 'CANVAS_TOO_LARGE')
+                ? (this.config.texts.downloadTooLarge
+                    || 'Could not generate the file: this paper size is too large for this device. Please pick a smaller paper size and try again.')
+                : (this.config.texts.downloadError || 'Error downloading image. Please try again.');
+            alert(message);
+        };
+
+        try {
+            const pending = this.sandPhoto.downloadImage(filename);
+            if (pending && typeof pending.catch === 'function') {
+                pending.catch(reportFailure);
+            }
+        } catch (error) {
+            reportFailure(error);
         }
     }
 }

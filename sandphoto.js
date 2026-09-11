@@ -2,6 +2,10 @@ class SandPhoto {
     constructor() {
         this.CM_PER_INCH = 2.54;
         this.DPI = 600;
+        // Browsers cap canvas area; beyond it the canvas silently fails to
+        // render or export. Only iOS is tight enough to matter in practice, so
+        // desktops keep full 600 DPI rather than losing quality needlessly.
+        this.MAX_CANVAS_PIXELS = this.detectMaxCanvasPixels();
         this.containerWidth = 0;
         this.containerHeight = 0;
         this.targetWidth = 0;
@@ -15,6 +19,44 @@ class SandPhoto {
     // Convert centimeters to pixels
     getPixelFromCM(value) {
         return Math.floor(value * this.DPI / this.CM_PER_INCH);
+    }
+
+    // Usable canvas area for this device. iOS Safari refuses to render or
+    // export canvases beyond ~16.7M pixels, which is what made large sheets
+    // fail there; other platforms are far more generous.
+    detectMaxCanvasPixels() {
+        const IOS_LIMIT = 16777216;
+        const DESKTOP_LIMIT = 268435456;
+
+        if (typeof navigator === 'undefined') {
+            return DESKTOP_LIMIT;
+        }
+        const ua = navigator.userAgent || '';
+        // iPadOS reports itself as a Mac, so check for touch support too.
+        const isIOS = /iPad|iPhone|iPod/.test(ua)
+            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        return isIOS ? IOS_LIMIT : DESKTOP_LIMIT;
+    }
+
+    // Number of canvas pixels a paper of this size needs at the current DPI
+    getPaperPixelCount(widthCM, heightCM) {
+        return this.getPixelFromCM(widthCM) * this.getPixelFromCM(heightCM);
+    }
+
+    // Lower the DPI when the requested paper would exceed the canvas limit, so
+    // large sheets (A4 and up) still render and download on phones. Returns the
+    // DPI actually in effect. Must be called before setContainerSize/setTargetSize
+    // so every measurement is computed consistently.
+    fitDpiToPaper(widthCM, heightCM, maxPixels = this.MAX_CANVAS_PIXELS) {
+        const needed = this.getPaperPixelCount(widthCM, heightCM);
+        if (needed <= maxPixels) {
+            return this.DPI;
+        }
+        // Canvas area grows with the square of the DPI.
+        const scale = Math.sqrt(maxPixels / needed);
+        this.DPI = Math.max(150, Math.floor(this.DPI * scale));
+        return this.DPI;
     }
 
     // Set container (paper) size in centimeters
@@ -727,18 +769,43 @@ class SandPhoto {
             throw new Error("No image generated yet");
         }
 
-        // Convert canvas to blob
-        this.canvas.toBlob((blob) => {
-            // Create download link
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 'image/jpeg', 1.0);
+        // Resolves once the download has been triggered, rejects on failure.
+        // Errors used to be thrown inside the async toBlob callback, where no
+        // caller could catch them, so a failed export looked like a dead button.
+        return new Promise((resolve, reject) => {
+            const run = () => {
+                this.canvas.toBlob((blob) => {
+                    if (!blob) {
+                        // Typically the canvas exceeded the browser's limits.
+                        const err = new Error('Canvas export failed; the sheet is probably too large for this browser.');
+                        err.code = 'CANVAS_TOO_LARGE';
+                        reject(err);
+                        return;
+                    }
+                    try {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        // Revoking immediately can cancel the download in some
+                        // browsers, so let it start first.
+                        setTimeout(() => URL.revokeObjectURL(url), 10000);
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                    }
+                }, 'image/jpeg', 1.0);
+            };
+
+            try {
+                run();
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 
     // Get the main canvas for high-quality output
